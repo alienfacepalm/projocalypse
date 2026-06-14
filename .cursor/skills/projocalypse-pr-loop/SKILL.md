@@ -23,8 +23,7 @@ End-to-end ship workflow for **Projocalypse**. Related rules: `projocalypse-feat
 
 2. **Verify**
    ```bash
-   pnpm build
-   pnpm lint
+   pnpm test:pr
    ```
    Fix failures before continuing.
 
@@ -44,8 +43,7 @@ gh pr create --title "feat: short description" --body "$(cat <<'EOF'
 - …
 
 ## Test plan
-- [x] pnpm build
-- [x] pnpm lint
+- [x] pnpm test:pr
 EOF
 )"
 ```

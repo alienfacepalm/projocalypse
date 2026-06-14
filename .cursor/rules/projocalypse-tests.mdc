@@ -19,10 +19,11 @@ Docs-only, comment-only, or dependency bumps with no logic change are exempt unl
 
 | Area | Runner | Location |
 |------|--------|----------|
-| Pure functions (export/import, utils) | Vitest (when configured) | `src/**/*.test.ts` |
-| React components / hooks | Vitest + Testing Library (when configured) | `src/**/*.test.tsx` |
+| Pure functions (export/import, utils) | Vitest | `src/**/*.test.ts` |
+| React components / hooks | Vitest + Testing Library | `src/**/*.test.tsx` |
+| DB operations | Vitest + fake-indexeddb | `src/db/**/*.test.ts` |
 
-Until a test runner is configured, run **`pnpm lint && pnpm build`** as the minimum verification gate per **`projocalypse-feature-ship.mdc`**.
+Run **`pnpm test`** for the suite; **`pnpm test:pr`** before ship (**`projocalypse-feature-ship.mdc`**).
 
 ## What to test
 

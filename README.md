@@ -36,6 +36,20 @@ pnpm preview
 pnpm lint
 ```
 
+## Tests
+
+```bash
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+```
+
+CI-style gate (tests + build + lint):
+
+```bash
+pnpm test:pr
+```
+
 ## Data storage
 
 All data lives in your browser's IndexedDB under the database name `pm-tool`. Clearing site data for this origin will delete your projects and tasks — use **Export backup** regularly.

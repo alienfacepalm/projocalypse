@@ -29,9 +29,9 @@ Execute in order; do not stop after commit.
 
    | Changed paths | Run |
    |---------------|-----|
-   | `src/**` (TS/TSX) | `pnpm build && pnpm lint` |
+   | `src/**` (TS/TSX) | `pnpm test:pr` |
    | Docs / `.cursor/**` only | `pnpm lint` if TS touched; otherwise skip |
-   | **Unsure** | `pnpm build && pnpm lint` |
+   | **Unsure** | `pnpm test:pr` |
 
    List the commands you ran in the PR **Test plan**.
 2. **Review diff** — `git status`, `git diff`, `git log -5` for commit message style.

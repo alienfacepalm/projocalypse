@@ -27,9 +27,10 @@ Adapted from the [talemail](https://github.com/alienfacepalm/talemail) Cursor co
 | Skill | Use when | Don't use when |
 |-------|----------|----------------|
 | `projocalypse-karpathy-guidelines` | Writing, reviewing, or refactoring **code**; surgical diffs, simplicity, verifiable success criteria | Overriding allow-all with permission prompts |
+| `projocalypse-full-review` | End-to-end review on a feature branch: gap analysis, tests, fixes, ship PR | Babysitting existing PR CI only (use `babysit`) |
 | `projocalypse-frontend-design` | Building or styling web UI — components, pages, dashboards, polish | Routine bug fixes unrelated to design |
 
-Imported from talemail: **Karpathy** for coding craft; **Anthropic frontend-design** for distinctive UI work.
+Imported from talemail: **Karpathy** for coding craft; **Anthropic frontend-design** for distinctive UI work; **full-review** workflow adapted as `projocalypse-full-review`.
 
 ## Quick start for agents
 
