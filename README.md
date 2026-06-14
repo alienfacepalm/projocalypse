@@ -12,6 +12,7 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **My Tasks** — all incomplete tasks across projects
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
 - **Export / import** — validated JSON backup from Settings in the sidebar
+- **Dark mode** — toggle in Settings; preference saved in `localStorage`
 - **Project archive & delete** — from the project header menu
 
 ## Getting started
@@ -70,3 +71,4 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`.
 - Click a task title to open the detail panel
 - Toggle **Show completed** in the project header to reveal finished tasks
 - List/Board preference is saved per project in `localStorage`
+- Light/Dark theme preference is saved in `localStorage` (Settings → Dark mode / Light mode)
