@@ -12,6 +12,7 @@ node_modules
 dist
 coverage
 dist-ssr
+.vite
 *.local
 
 # Lockfiles (pnpm only)
