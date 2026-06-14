@@ -12,6 +12,7 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **My Tasks** — all incomplete tasks across projects
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
 - **Export / import** — validated JSON backup from Settings in the sidebar
+- **Browser sync** — no-server sync across tabs (localStorage mirror) and across devices via a linked sync file in iCloud/Dropbox/Google Drive (File System Access API); conflicts resolved by per-item `updatedAt` (newer wins, ties prefer local)
 - **Project archive & delete** — from the project header menu
 
 ## Getting started
@@ -54,7 +55,20 @@ pnpm test:pr
 
 All data lives in your browser's IndexedDB under the database name `pm-tool`. Clearing site data for this origin will delete your projects and tasks — use **Export backup** regularly.
 
-Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`.
+### Browser sync (no server)
+
+Projocalypse follows the same offline-first sync pattern as [Tabocalypse](https://github.com/alienfacepalm/tabocalypse): a **local mirror** for immediate reads plus a **cloud layer** for cross-device propagation. Tabocalypse uses the browser extension `storage.sync` API; as a plain web app, Projocalypse uses:
+
+| Layer | Mechanism | Scope |
+|-------|-----------|--------|
+| **Mirror** | `localStorage` (`projocalypseSyncMirror`) | All tabs on this origin |
+| **Cloud** | Linked `projocalypse-sync.json` via File System Access API | Any device sharing that file (e.g. via iCloud Drive, Dropbox, Google Drive) |
+
+Open **Settings → Browser sync** to create or link a sync file. Edits debounce into the mirror and sync file automatically; other tabs pick up mirror changes via the `storage` event; linked files are polled every few seconds when the tab is visible.
+
+Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as Tabocalypse notes). Deletes may reappear if another device still has the entity — use Export backup before major cleanups.
+
+Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The live sync file is named `projocalypse-sync.json`.
 
 ## Tech stack
 

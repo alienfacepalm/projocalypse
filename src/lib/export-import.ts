@@ -64,11 +64,16 @@ function parseProject(raw: unknown, index: number): Project {
 
 function parseSection(raw: unknown, index: number): Section {
   if (!isObject(raw)) throw new Error(`Invalid backup — sections[${index}] must be an object.`)
+  const now = Date.now()
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : now
   return {
     id: requireString(raw, 'id', `sections[${index}].id`),
     projectId: requireString(raw, 'projectId', `sections[${index}].projectId`),
     name: requireString(raw, 'name', `sections[${index}].name`),
     sortOrder: requireNumber(raw, 'sortOrder', `sections[${index}].sortOrder`),
+    updatedAt,
   }
 }
 
@@ -86,6 +91,10 @@ function parseTask(raw: unknown, index: number): Task {
   if (completedAt !== null && (typeof completedAt !== 'number' || Number.isNaN(completedAt))) {
     throw new Error(`Invalid backup — tasks[${index}].completedAt must be a number or null.`)
   }
+  const createdAt = requireNumber(raw, 'createdAt', `tasks[${index}].createdAt`)
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : createdAt
   return {
     id: requireString(raw, 'id', `tasks[${index}].id`),
     projectId: requireString(raw, 'projectId', `tasks[${index}].projectId`),
@@ -96,19 +105,24 @@ function parseTask(raw: unknown, index: number): Task {
     dueDate: dueDate as number | null,
     priority: priority as Priority,
     sortOrder: requireNumber(raw, 'sortOrder', `tasks[${index}].sortOrder`),
-    createdAt: requireNumber(raw, 'createdAt', `tasks[${index}].createdAt`),
+    createdAt,
+    updatedAt,
     completedAt: completedAt as number | null,
   }
 }
 
 function parseSubtask(raw: unknown, index: number): Subtask {
   if (!isObject(raw)) throw new Error(`Invalid backup — subtasks[${index}] must be an object.`)
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : Date.now()
   return {
     id: requireString(raw, 'id', `subtasks[${index}].id`),
     taskId: requireString(raw, 'taskId', `subtasks[${index}].taskId`),
     title: requireString(raw, 'title', `subtasks[${index}].title`),
     completed: requireBoolean(raw, 'completed', `subtasks[${index}].completed`),
     sortOrder: requireNumber(raw, 'sortOrder', `subtasks[${index}].sortOrder`),
+    updatedAt,
   }
 }
 

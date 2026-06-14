@@ -16,12 +16,14 @@ export async function createProject(name: string, color: string): Promise<Projec
   }
 
   const todoSectionId = uuidv4()
+  const inProgressSectionId = uuidv4()
+  const doneSectionId = uuidv4()
   await db.transaction('rw', db.projects, db.sections, async () => {
     await db.projects.add(project)
     await db.sections.bulkAdd([
-      { id: todoSectionId, projectId: project.id, name: 'To Do', sortOrder: 0 },
-      { id: uuidv4(), projectId: project.id, name: 'In Progress', sortOrder: 1 },
-      { id: uuidv4(), projectId: project.id, name: 'Done', sortOrder: 2 },
+      { id: todoSectionId, projectId: project.id, name: 'To Do', sortOrder: 0, updatedAt: now },
+      { id: inProgressSectionId, projectId: project.id, name: 'In Progress', sortOrder: 1, updatedAt: now },
+      { id: doneSectionId, projectId: project.id, name: 'Done', sortOrder: 2, updatedAt: now },
     ])
   })
 
@@ -33,14 +35,15 @@ export async function updateProject(id: string, updates: Partial<Pick<Project, '
 }
 
 export async function createSection(projectId: string, name: string): Promise<Section> {
+  const now = Date.now()
   const count = await db.sections.where('projectId').equals(projectId).count()
-  const section: Section = { id: uuidv4(), projectId, name, sortOrder: count }
+  const section: Section = { id: uuidv4(), projectId, name, sortOrder: count, updatedAt: now }
   await db.sections.add(section)
   return section
 }
 
 export async function updateSection(id: string, name: string): Promise<void> {
-  await db.sections.update(id, { name })
+  await db.sections.update(id, { name, updatedAt: Date.now() })
 }
 
 export async function deleteSection(id: string): Promise<void> {
@@ -64,6 +67,7 @@ export async function createTask(projectId: string, sectionId: string, title: st
     priority: 'none',
     sortOrder: count,
     createdAt: now,
+    updatedAt: now,
     completedAt: null,
   }
   await db.tasks.add(task)
@@ -74,14 +78,16 @@ export async function updateTask(
   id: string,
   updates: Partial<Pick<Task, 'title' | 'description' | 'dueDate' | 'priority' | 'sectionId' | 'sortOrder' | 'completed' | 'completedAt'>>,
 ): Promise<void> {
-  await db.tasks.update(id, updates)
+  await db.tasks.update(id, { ...updates, updatedAt: Date.now() })
 }
 
 export async function toggleTaskComplete(task: Task): Promise<void> {
   const completed = !task.completed
+  const now = Date.now()
   await db.tasks.update(task.id, {
     completed,
-    completedAt: completed ? Date.now() : null,
+    completedAt: completed ? now : null,
+    updatedAt: now,
   })
 }
 
@@ -93,26 +99,28 @@ export async function deleteTask(id: string): Promise<void> {
 }
 
 export async function moveTask(taskId: string, sectionId: string, sortOrder: number): Promise<void> {
-  await db.tasks.update(taskId, { sectionId, sortOrder })
+  await db.tasks.update(taskId, { sectionId, sortOrder, updatedAt: Date.now() })
 }
 
 export async function reorderTasks(updates: { id: string; sectionId: string; sortOrder: number }[]): Promise<void> {
+  const now = Date.now()
   await db.transaction('rw', db.tasks, async () => {
     for (const u of updates) {
-      await db.tasks.update(u.id, { sectionId: u.sectionId, sortOrder: u.sortOrder })
+      await db.tasks.update(u.id, { sectionId: u.sectionId, sortOrder: u.sortOrder, updatedAt: now })
     }
   })
 }
 
 export async function createSubtask(taskId: string, title: string): Promise<Subtask> {
+  const now = Date.now()
   const count = await db.subtasks.where('taskId').equals(taskId).count()
-  const subtask: Subtask = { id: uuidv4(), taskId, title, completed: false, sortOrder: count }
+  const subtask: Subtask = { id: uuidv4(), taskId, title, completed: false, sortOrder: count, updatedAt: now }
   await db.subtasks.add(subtask)
   return subtask
 }
 
 export async function updateSubtask(id: string, updates: Partial<Pick<Subtask, 'title' | 'completed'>>): Promise<void> {
-  await db.subtasks.update(id, updates)
+  await db.subtasks.update(id, { ...updates, updatedAt: Date.now() })
 }
 
 export async function deleteSubtask(id: string): Promise<void> {
@@ -120,7 +128,7 @@ export async function deleteSubtask(id: string): Promise<void> {
 }
 
 export async function setTaskPriority(id: string, priority: Priority): Promise<void> {
-  await db.tasks.update(id, { priority })
+  await db.tasks.update(id, { priority, updatedAt: Date.now() })
 }
 
 export async function archiveProject(id: string): Promise<void> {

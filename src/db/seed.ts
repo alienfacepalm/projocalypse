@@ -23,9 +23,9 @@ export async function seedIfEmpty(): Promise<void> {
     })
 
     await db.sections.bulkAdd([
-      { id: todoSectionId, projectId, name: 'To Do', sortOrder: 0 },
-      { id: inProgressSectionId, projectId, name: 'In Progress', sortOrder: 1 },
-      { id: doneSectionId, projectId, name: 'Done', sortOrder: 2 },
+      { id: todoSectionId, projectId, name: 'To Do', sortOrder: 0, updatedAt: now },
+      { id: inProgressSectionId, projectId, name: 'In Progress', sortOrder: 1, updatedAt: now },
+      { id: doneSectionId, projectId, name: 'Done', sortOrder: 2, updatedAt: now },
     ])
 
     await db.tasks.bulkAdd([
@@ -40,6 +40,7 @@ export async function seedIfEmpty(): Promise<void> {
         priority: 'medium',
         sortOrder: 0,
         createdAt: now,
+        updatedAt: now,
         completedAt: null,
       },
       {
@@ -53,6 +54,7 @@ export async function seedIfEmpty(): Promise<void> {
         priority: 'none',
         sortOrder: 1,
         createdAt: now,
+        updatedAt: now,
         completedAt: null,
       },
       {
@@ -66,6 +68,7 @@ export async function seedIfEmpty(): Promise<void> {
         priority: 'high',
         sortOrder: 0,
         createdAt: now,
+        updatedAt: now,
         completedAt: null,
       },
     ])

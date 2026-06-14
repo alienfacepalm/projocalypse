@@ -15,6 +15,7 @@ export interface Section {
   projectId: string
   name: string
   sortOrder: number
+  updatedAt: number
 }
 
 export interface Task {
@@ -28,6 +29,7 @@ export interface Task {
   priority: Priority
   sortOrder: number
   createdAt: number
+  updatedAt: number
   completedAt: number | null
 }
 
@@ -37,6 +39,17 @@ export interface Subtask {
   title: string
   completed: boolean
   sortOrder: number
+  updatedAt: number
+}
+
+/** Payload synced across browsers (Tabocalypse-style sync slice). */
+export interface SyncSlice {
+  version: 1
+  syncedAt: number
+  projects: Project[]
+  sections: Section[]
+  tasks: Task[]
+  subtasks: Subtask[]
 }
 
 export type ViewMode = 'list' | 'board'

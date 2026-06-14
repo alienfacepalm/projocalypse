@@ -25,11 +25,13 @@ export function makeProject(overrides: Partial<Project> = {}): Project {
 }
 
 export function makeSection(overrides: Partial<Section> = {}): Section {
+  const now = Date.now()
   return {
     id: 'section-1',
     projectId: 'project-1',
     name: 'To Do',
     sortOrder: 0,
+    updatedAt: now,
     ...overrides,
   }
 }
@@ -47,18 +49,21 @@ export function makeTask(overrides: Partial<Task> = {}): Task {
     priority: 'none',
     sortOrder: 0,
     createdAt: now,
+    updatedAt: now,
     completedAt: null,
     ...overrides,
   }
 }
 
 export function makeSubtask(overrides: Partial<Subtask> = {}): Subtask {
+  const now = Date.now()
   return {
     id: 'subtask-1',
     taskId: 'task-1',
     title: 'Subtask',
     completed: false,
     sortOrder: 0,
+    updatedAt: now,
     ...overrides,
   }
 }
