@@ -1,0 +1,47 @@
+---
+description: Projocalypse stack — React, Vite, Dexie, Tailwind conventions
+globs: "**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# Projocalypse stack conventions
+
+## Package manager
+
+- **pnpm only** for Node/TypeScript; never npm or yarn lockfiles. See **`projocalypse-pnpm.mdc`**.
+
+## Architecture
+
+| Layer | Stack |
+|-------|--------|
+| UI | React 19, TypeScript, Vite |
+| Routing | react-router-dom |
+| Styling | Tailwind CSS v4, shadcn/ui primitives — see **`projocalypse-tailwind-shadcn.mdc`** |
+| Components | shadcn/ui in `src/components/ui/` (Radix + `cva` + Tailwind) |
+| Drag and drop | @dnd-kit |
+| Persistence | Dexie.js + dexie-react-hooks; database name `pm-tool` |
+| IDs | `uuid` |
+
+## No backend
+
+- All data lives in the browser (IndexedDB). No API server, Firebase, or remote sync unless explicitly scoped.
+- Export/import JSON is the backup and migration path.
+
+## File layout
+
+| Path | Purpose |
+|------|---------|
+| `src/components/` | UI components by feature (`layout/`, `project/`, `task/`, `ui/`) |
+| `src/context/` | React context providers |
+| `src/db/` | Dexie schema, operations, seed |
+| `src/hooks/` | Custom hooks |
+| `src/lib/` | Utilities, export/import |
+| `src/models/` | Shared TypeScript types |
+
+## Conventions
+
+- File and directory naming: **`projocalypse-filenames.mdc`**. TypeScript symbols: **`projocalypse-typescript.mdc`**.
+- Use existing `cn()` helper from `src/lib/utils.ts` for class merging.
+- Prefer Dexie operations in `src/db/operations.ts` over ad-hoc DB access in components.
+- View mode preference per project: `localStorage` via `useProjectViewMode`.
+- Do not add server-side dependencies without an explicit user request.

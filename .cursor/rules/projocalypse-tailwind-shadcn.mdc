@@ -1,0 +1,50 @@
+---
+description: Styling — Tailwind CSS and shadcn/ui only; no alternate CSS frameworks
+globs: "src/**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# Projocalypse styling — Tailwind + shadcn only
+
+**Tailwind CSS** for all styling. **shadcn/ui** pattern for interactive primitives. Do not introduce other CSS frameworks or per-component stylesheets.
+
+Related: **`projocalypse-stack.mdc`**, **`projocalypse-frontend-design`** skill.
+
+## Allowed
+
+| What | Where |
+|------|--------|
+| Tailwind utility classes | `className` on any component |
+| `cn()` helper | `src/lib/utils.ts` — merge/override classes |
+| shadcn/ui primitives | `src/components/ui/` — Radix + `cva` + Tailwind (Button, Dialog, Input, …) |
+| Theme tokens & base styles | `src/styles/globals.css` only — `@theme`, resets, fonts |
+| Third-party component CSS | Single `@import` in `globals.css` when required (e.g. `react-day-picker`) |
+| Inline `style` | **Only** for dynamic values that cannot be expressed as utilities (e.g. `backgroundColor: project.color`) |
+
+## Required patterns
+
+- **New interactive UI** — add or extend a primitive under `src/components/ui/` using the existing shadcn pattern (`forwardRef`, `cva`, Radix slot/primitive, `cn()`).
+- **Feature components** — compose from `src/components/ui/*` + Tailwind; no bespoke button/input/dialog implementations.
+- **Variants** — use `class-variance-authority` in `ui/` components, not ad-hoc conditional class strings for shared primitives.
+- **Icons** — `lucide-react` (already in stack); size/color via Tailwind classes.
+
+## Forbidden (unless user explicitly requests an exception)
+
+- CSS Modules (`*.module.css`)
+- Styled-components, Emotion, Linaria, vanilla-extract
+- Component-scoped `.css` / `.scss` files under `src/components/`
+- UI libraries that ship their own styles (MUI, Chakra, Ant Design, Bootstrap)
+- Global `<style>` tags or injected stylesheets in components
+- Replacing Tailwind with `@apply` blocks in new CSS files
+
+## Adding a missing shadcn component
+
+1. Match existing files in `src/components/ui/` (kebab-case filename, PascalCase export).
+2. Use Radix primitive + `cva` + `cn()` — copy structure from `button.tsx` or `dialog.tsx`.
+3. Add any new theme tokens to `@theme` in `globals.css`, not hard-coded hex in feature code.
+4. `pnpm add` only the Radix package needed; do not add alternate styling deps.
+
+## When editing
+
+- Prefer extending an existing `ui/` component over duplicating markup/styles in feature folders.
+- Keep `globals.css` limited to tokens, resets, and unavoidable third-party imports — not feature layout.

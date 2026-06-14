@@ -1,0 +1,60 @@
+---
+description: TypeScript — no any; T/I/E prefixes for named types, interfaces, enums
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Projocalypse TypeScript
+
+Applies to **hand-written** TypeScript in `src/**`. Does not apply to generated or toolchain output unless you are editing the generator.
+
+Related: **`projocalypse-filenames.mdc`** (file and directory naming on disk).
+
+## No `any`
+
+- **Never** use `any` (including `as any`, `Array<any>`, `Record<string, any>`).
+- Prefer `unknown` plus narrowing, generics, `satisfies`, or concrete types.
+- For truly dynamic JSON (import files, backup payloads), validate before use and infer types from the schema.
+- `// eslint-disable` / `@ts-expect-error` to allow `any` is **not** acceptable.
+
+## Named type prefixes
+
+Use a **PascalCase** name with a **required prefix** by declaration kind:
+
+| Kind | Prefix | Example |
+|------|--------|---------|
+| `type` alias (exported or shared module-local) | `T` | `TPriority`, `TExportData` |
+| `interface` | `I` | `IProject`, `ITask` |
+| `enum` | `E` | `EPriority` |
+
+- **Type aliases:** `type TPriority = 'none' | 'low' | 'medium' | 'high'`.
+- **Interfaces:** `interface IProject { ... }`.
+- **Enums:** `enum EPriority { ... }` (prefer `as const` objects + `T` alias when a plain union is enough).
+
+### Generics (unchanged)
+
+Single-letter or short generic parameters (`T`, `K`, `V`, `TResult`) are standard and **not** the `T` prefix rule above. Only **named** type aliases use the `T` prefix.
+
+```typescript
+// OK — generic parameter, not a named exported alias
+function pick<T, K extends keyof T>(obj: T, key: K): T[K] { ... }
+```
+
+### Exceptions (no rename required)
+
+- **Third-party / framework augmentation** (e.g. `declare module "vite/client" { ... }`) — keep the library’s expected names.
+- **Legacy symbols** in `src/models/types.ts` (`Project`, `Task`, `Section`, `Subtask`, `Priority`, `ExportData`, etc.) — rename when you are already changing that module; avoid drive-by renames across the repo.
+- **Dexie table shapes** — inline row types tied to schema are fine; when you **export** a persisted row shape, wrap it: `export type TTaskRow = Task` (or `IProject` after migration).
+
+## When editing existing code
+
+- New symbols and refactors in touched files should follow this rule.
+- Renaming legacy symbols (e.g. `Project` → `IProject`) is encouraged when you are already changing that module; avoid drive-by renames across the repo in unrelated tasks.
+
+## Quick checklist
+
+- [ ] No `any` in the diff
+- [ ] New `type` names start with `T`
+- [ ] New `interface` names start with `I`
+- [ ] New `enum` names start with `E`
+- [ ] Dynamic data validated before use (`unknown` → narrowed)

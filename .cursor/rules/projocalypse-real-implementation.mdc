@@ -1,0 +1,37 @@
+---
+description: Build real behavior by default — no mocks unless specified
+alwaysApply: true
+---
+
+# Projocalypse — real implementations (not mocks)
+
+**Default:** Ship **real** behavior wired to the actual stack (IndexedDB via Dexie, React UI, export/import). Do not substitute placeholders, fake data, or no-op adapters when the task is to deliver product code.
+
+Related: **`projocalypse-tests.mdc`** (mocks in tests only), **`projocalypse-stack.mdc`**.
+
+## What “real” means
+
+| Area | Real | Not a substitute for real |
+|------|------|-----------------------------|
+| **Persistence** | Dexie tables, schema, operations in `src/db/` | In-memory arrays unless the user scoped a throwaway spike |
+| **UI state** | React state, context, hooks backed by DB reads/writes | Hard-coded task lists in components |
+| **Export / import** | JSON backup matching `ExportData` schema | Console.log-only “export” |
+| **Drag and drop** | @dnd-kit with persisted sort order | Visual-only reorder with no DB update |
+
+## When mocks or stubs are OK
+
+1. **Automated tests** — mock Dexie or isolate pure functions per **`projocalypse-tests.mdc`**.
+2. **User explicitly asks** — e.g. “mock this for a demo”, “use fake data for a prototype”.
+3. **Spikes** — clearly labeled WIP/prototype the user scoped as disposable; do not merge as the canonical path without replacing with real wiring.
+
+## Agent workflow
+
+- Prefer implementing the **real module** (DB operation, hook, component) even if local dev uses seed data.
+- Do not add “TODO: real implementation” mocks in user-facing flows unless the user chose deferral; say what is blocked instead.
+- When reviewing your own work: if the feature “works” only because data or side effects are faked, it is **not done**.
+
+## Anti-patterns
+
+- Components that only `console.log` or show static fixtures without a tracked follow-up
+- Duplicate “mock” and “real” data paths with no plan to delete the mock path
+- UI that appears to save but does not persist to IndexedDB

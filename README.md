@@ -17,8 +17,8 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open the URL shown in the terminal (typically `http://localhost:5173`).
@@ -26,14 +26,28 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 ## Build
 
 ```bash
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
 ## Lint
 
 ```bash
-npm run lint
+pnpm lint
+```
+
+## Tests
+
+```bash
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+```
+
+CI-style gate (tests + build + lint):
+
+```bash
+pnpm test:pr
 ```
 
 ## Data storage
@@ -46,8 +60,7 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`.
 
 - React 19 + Vite + TypeScript
 - Dexie.js + dexie-react-hooks
-- Tailwind CSS v4
-- Radix UI primitives
+- Tailwind CSS v4 + shadcn/ui (Radix primitives in `src/components/ui/`)
 - @dnd-kit for drag and drop
 - react-router-dom
 
