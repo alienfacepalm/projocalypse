@@ -11,6 +11,7 @@ import {
   type SyncSources,
   validateSyncSlice,
 } from '@/lib/sync/payload'
+import { removeGettingStartedProjects } from '@/db/cleanup-getting-started'
 import { exportData, importData } from '@/lib/export-import'
 import { db } from '@/db/schema'
 import type { SyncSlice } from '@/models/types'
@@ -167,6 +168,7 @@ export async function pullRemoteSync(baseline?: SyncSlice): Promise<boolean> {
   applyingRemote = true
   try {
     await applySyncSliceToDb(merged)
+    await removeGettingStartedProjects()
     lastAppliedFingerprint = fingerprint
     notifyStatus({
       mirrorAvailable: Boolean(readMirrorSlice()),
