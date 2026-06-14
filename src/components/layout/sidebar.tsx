@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useLocation } from 'react-router-dom'
-import { CheckSquare, Download, Menu, Plus, Upload, X } from 'lucide-react'
+import { CheckSquare, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
 import { useBrowserSync } from '@/hooks/use-browser-sync'
+import { useTheme } from '@/hooks/use-theme'
 import { SyncSettingsItems } from '@/components/layout/sync-settings'
 import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
 import { cn, downloadJson } from '@/lib/utils'
@@ -28,6 +29,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const syncStatus = useBrowserSync()
+  const [theme, setTheme] = useTheme()
 
   async function handleExport() {
     const data = await exportData()
@@ -135,6 +137,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <DropdownMenuItem onClick={handleImport}>
               <Upload className="mr-2 h-4 w-4" />
               Import backup
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light mode
+                </>
+              ) : (
+                <>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark mode
+                </>
+              )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
