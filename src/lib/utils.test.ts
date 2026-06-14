@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  applyTheme,
   dueDateClass,
   formatDueDate,
+  getTheme,
   getViewMode,
   priorityColor,
   priorityLabel,
+  setTheme,
   setViewMode,
 } from '@/lib/utils'
 
@@ -80,5 +83,28 @@ describe('view mode persistence', () => {
     setViewMode('proj-1', 'board')
     expect(getViewMode('proj-1')).toBe('board')
     expect(getViewMode('proj-2')).toBe('list')
+  })
+})
+
+describe('theme persistence', () => {
+  afterEach(() => {
+    localStorage.removeItem('theme')
+    applyTheme('light')
+  })
+
+  it('defaults to light', () => {
+    expect(getTheme()).toBe('light')
+  })
+
+  it('persists dark mode', () => {
+    setTheme('dark')
+    expect(getTheme()).toBe('dark')
+  })
+
+  it('applies dark class on documentElement', () => {
+    applyTheme('dark')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    applyTheme('light')
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 })

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useLocation } from 'react-router-dom'
-import { CheckSquare, Download, Menu, Plus, Upload, X } from 'lucide-react'
+import { CheckSquare, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
 import { createProject } from '@/db/operations'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
+import { useTheme } from '@/hooks/use-theme'
 import { cn, downloadJson } from '@/lib/utils'
 import { PROJECT_COLORS } from '@/models/types'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [projectName, setProjectName] = useState('')
   const [selectedColor, setSelectedColor] = useState<string>(PROJECT_COLORS[3])
   const [importError, setImportError] = useState<string | null>(null)
+  const [theme, setTheme] = useTheme()
 
   async function handleCreateProject() {
     const name = projectName.trim()
@@ -189,6 +191,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <DropdownMenuItem onClick={handleImport}>
               <Upload className="mr-2 h-4 w-4" />
               Import backup
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light mode
+                </>
+              ) : (
+                <>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark mode
+                </>
+              )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-background: #f4f0e8;
   --color-foreground: #1a1714;
@@ -24,6 +26,28 @@
   --font-display: "Fraunces", Georgia, serif;
 }
 
+.dark {
+  --color-background: #1a1714;
+  --color-foreground: #f4f0e8;
+  --color-muted: #2a2622;
+  --color-muted-foreground: #a89f94;
+  --color-border: #3d3832;
+  --color-input: #4a433c;
+  --color-ring: #e06840;
+  --color-primary: #e06840;
+  --color-primary-foreground: #fff8f2;
+  --color-secondary: #2e2a26;
+  --color-secondary-foreground: #f4f0e8;
+  --color-accent: #353028;
+  --color-accent-foreground: #f4f0e8;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #fff8f2;
+  --color-popover: #24201c;
+  --color-popover-foreground: #f4f0e8;
+  --color-card: #24201c;
+  --color-sidebar: #1f1b17;
+}
+
 * {
   border-color: var(--color-border);
 }
@@ -37,6 +61,12 @@ body {
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201, 78, 42, 0.08), transparent),
     linear-gradient(180deg, #f7f3eb 0%, var(--color-background) 40%);
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(224, 104, 64, 0.12), transparent),
+    linear-gradient(180deg, #1f1b17 0%, var(--color-background) 40%);
 }
 
 #root {
