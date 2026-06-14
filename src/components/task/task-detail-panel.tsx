@@ -28,6 +28,10 @@ const PRIORITIES: Priority[] = ['none', 'low', 'medium', 'high']
 function TaskDetailForm({ task }: { task: Task }) {
   const { closeTask } = useTaskPanel()
   const project = useLiveQuery(() => db.projects.get(task.projectId), [task.projectId])
+  const sections = useLiveQuery(
+    () => db.sections.where('projectId').equals(task.projectId).sortBy('sortOrder'),
+    [task.projectId],
+  )
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
 
@@ -96,6 +100,27 @@ function TaskDetailForm({ task }: { task: Task }) {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Section</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="max-w-[180px] truncate">
+                  {sections?.find((section) => section.id === task.sectionId)?.name ?? 'Section'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {sections?.map((section) => (
+                  <DropdownMenuItem
+                    key={section.id}
+                    onClick={() => updateTask(task.id, { sectionId: section.id })}
+                  >
+                    {section.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Due date</Label>
             <Popover>

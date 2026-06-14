@@ -1,5 +1,6 @@
 import { db } from '@/db/schema'
-import type { ExportData, Priority, Project, Section, Subtask, Task } from '@/models/types'
+import { enforceTombstones } from '@/db/tombstones'
+import type { ExportData, Priority, Project, Section, Subtask, Task, Tombstone } from '@/models/types'
 
 export async function exportData(): Promise<ExportData> {
   const [projects, sections, tasks, subtasks] = await Promise.all([
@@ -64,11 +65,16 @@ function parseProject(raw: unknown, index: number): Project {
 
 function parseSection(raw: unknown, index: number): Section {
   if (!isObject(raw)) throw new Error(`Invalid backup — sections[${index}] must be an object.`)
+  const now = Date.now()
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : now
   return {
     id: requireString(raw, 'id', `sections[${index}].id`),
     projectId: requireString(raw, 'projectId', `sections[${index}].projectId`),
     name: requireString(raw, 'name', `sections[${index}].name`),
     sortOrder: requireNumber(raw, 'sortOrder', `sections[${index}].sortOrder`),
+    updatedAt,
   }
 }
 
@@ -86,6 +92,10 @@ function parseTask(raw: unknown, index: number): Task {
   if (completedAt !== null && (typeof completedAt !== 'number' || Number.isNaN(completedAt))) {
     throw new Error(`Invalid backup — tasks[${index}].completedAt must be a number or null.`)
   }
+  const createdAt = requireNumber(raw, 'createdAt', `tasks[${index}].createdAt`)
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : createdAt
   return {
     id: requireString(raw, 'id', `tasks[${index}].id`),
     projectId: requireString(raw, 'projectId', `tasks[${index}].projectId`),
@@ -96,19 +106,24 @@ function parseTask(raw: unknown, index: number): Task {
     dueDate: dueDate as number | null,
     priority: priority as Priority,
     sortOrder: requireNumber(raw, 'sortOrder', `tasks[${index}].sortOrder`),
-    createdAt: requireNumber(raw, 'createdAt', `tasks[${index}].createdAt`),
+    createdAt,
+    updatedAt,
     completedAt: completedAt as number | null,
   }
 }
 
 function parseSubtask(raw: unknown, index: number): Subtask {
   if (!isObject(raw)) throw new Error(`Invalid backup — subtasks[${index}] must be an object.`)
+  const updatedAtRaw = raw.updatedAt
+  const updatedAt =
+    typeof updatedAtRaw === 'number' && !Number.isNaN(updatedAtRaw) ? updatedAtRaw : Date.now()
   return {
     id: requireString(raw, 'id', `subtasks[${index}].id`),
     taskId: requireString(raw, 'taskId', `subtasks[${index}].taskId`),
     title: requireString(raw, 'title', `subtasks[${index}].title`),
     completed: requireBoolean(raw, 'completed', `subtasks[${index}].completed`),
     sortOrder: requireNumber(raw, 'sortOrder', `subtasks[${index}].sortOrder`),
+    updatedAt,
   }
 }
 
@@ -154,6 +169,7 @@ export function validateExportData(data: unknown): ExportData {
 
 export async function importData(data: ExportData): Promise<void> {
   validateExportData(data)
+  await db.tombstones.clear()
 
   await db.transaction('rw', db.projects, db.sections, db.tasks, db.subtasks, async () => {
     await db.subtasks.clear()
@@ -166,4 +182,26 @@ export async function importData(data: ExportData): Promise<void> {
     await db.tasks.bulkAdd(data.tasks)
     await db.subtasks.bulkAdd(data.subtasks)
   })
+}
+
+export async function importSyncData(data: ExportData, tombstones: Tombstone[]): Promise<void> {
+  validateExportData(data)
+  await db.tombstones.clear()
+
+  await db.transaction('rw', db.projects, db.sections, db.tasks, db.subtasks, async () => {
+    await db.subtasks.clear()
+    await db.tasks.clear()
+    await db.sections.clear()
+    await db.projects.clear()
+
+    await db.projects.bulkAdd(data.projects)
+    await db.sections.bulkAdd(data.sections)
+    await db.tasks.bulkAdd(data.tasks)
+    await db.subtasks.bulkAdd(data.subtasks)
+  })
+
+  if (tombstones.length > 0) {
+    await db.tombstones.bulkAdd(tombstones)
+  }
+  await enforceTombstones()
 }

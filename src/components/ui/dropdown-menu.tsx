@@ -46,4 +46,46 @@ const DropdownMenuSeparator = forwardRef<
 ))
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator }
+const DropdownMenuSub = DropdownMenuPrimitive.Sub
+
+const DropdownMenuSubTrigger = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & { inset?: boolean }
+>(({ className, inset, ...props }, ref) => (
+  <DropdownMenuPrimitive.SubTrigger
+    ref={ref}
+    className={cn(
+      'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent',
+      inset && 'pl-8',
+      className,
+    )}
+    {...props}
+  />
+))
+DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName
+
+const DropdownMenuSubContent = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.SubContent>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+>(({ className, ...props }, ref) => (
+  <DropdownMenuPrimitive.SubContent
+    ref={ref}
+    className={cn(
+      'z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg',
+      className,
+    )}
+    {...props}
+  />
+))
+DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName
+
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+}

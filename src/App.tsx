@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { seedIfEmpty } from '@/db/seed'
+import { removeGettingStartedProjects } from '@/db/operations'
 import { db } from '@/db/schema'
 import { TaskPanelProvider } from '@/context/task-panel-context'
 import { AppShell } from '@/components/layout/app-shell'
@@ -21,7 +21,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    seedIfEmpty().then(() => setReady(true))
+    removeGettingStartedProjects().then(() => setReady(true))
   }, [])
 
   if (!ready) {

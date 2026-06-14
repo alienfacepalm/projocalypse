@@ -1,20 +1,28 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useLocation } from 'react-router-dom'
-import { CheckSquare, Download, Menu, Plus, Upload, X } from 'lucide-react'
-import { db } from '@/db/schema'
-import { createProject } from '@/db/operations'
-import { exportData, importData, parseImportJson } from '@/lib/export-import'
-import { cn, downloadJson } from '@/lib/utils'
-import { PROJECT_COLORS } from '@/models/types'
-import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
+import { db } from '@/db/schema'
+import { exportData, importData, parseImportJson } from '@/lib/export-import'
+import { reorderProjects, unarchiveProject } from '@/db/operations'
+import { computeProjectReorderUpdates, projectIdFromSortableId, sortableProjectId } from '@/lib/project-drag'
+import { useBrowserSync } from '@/hooks/use-browser-sync'
+import { useTheme } from '@/hooks/use-theme'
+import { SyncSettingsItems } from '@/components/layout/sync-settings'
+import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
+import { GlobalSearch } from '@/components/layout/global-search'
+import { SortableProjectLink } from '@/components/layout/sortable-project-link'
+import { cn, downloadJson } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 interface SidebarProps {
   open: boolean
@@ -33,18 +39,13 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const projects = useLiveQuery(() => db.projects.filter((p) => !p.archived).sortBy('sortOrder'), [])
+  const archivedProjects = useLiveQuery(() => db.projects.filter((p) => p.archived).sortBy('sortOrder'), [])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [projectName, setProjectName] = useState('')
-  const [selectedColor, setSelectedColor] = useState<string>(PROJECT_COLORS[3])
   const [importError, setImportError] = useState<string | null>(null)
-
-  async function handleCreateProject() {
-    const name = projectName.trim()
-    if (!name) return
-    await createProject(name, selectedColor)
-    setProjectName('')
-    setDialogOpen(false)
-  }
+  const [archivedOpen, setArchivedOpen] = useState(false)
+  const syncStatus = useBrowserSync()
+  const [theme, setTheme] = useTheme()
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   async function handleExport() {
     const data = await exportData()
@@ -74,6 +75,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     input.click()
   }
 
+  async function handleProjectDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || !projects) return
+    const updates = computeProjectReorderUpdates(
+      projects,
+      projectIdFromSortableId(String(active.id)),
+      projectIdFromSortableId(String(over.id)),
+    )
+    if (updates) await reorderProjects(updates)
+  }
+
+  const projectSortableIds = (projects ?? []).map((project) => sortableProjectId(project.id))
+
   const content = (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-4">
@@ -86,7 +100,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </Button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
+      <GlobalSearch />
+
+      <nav className="flex-1 overflow-y-auto px-2 py-1">
         <Link
           to="/my-tasks"
           onClick={onClose}
@@ -103,72 +119,65 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           Projects
         </div>
 
-        <div className="mt-1.5 space-y-0.5">
-          {projects?.map((project) => (
-            <Link
-              key={project.id}
-              to={`/project/${project.id}`}
-              onClick={onClose}
-              className={cn(
-                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent',
-                location.pathname === `/project/${project.id}` && 'bg-accent font-medium text-accent-foreground',
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+          <SortableContext items={projectSortableIds} strategy={verticalListSortingStrategy}>
+            <div className="mt-1.5 space-y-0.5">
+              {projects?.map((project) => (
+                <SortableProjectLink key={project.id} project={project} onNavigate={onClose} />
+              ))}
+              {projects?.length === 0 && (
+                <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
               )}
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-border/60" style={{ backgroundColor: project.color }} />
-              <span className="truncate">{project.name}</span>
-            </Link>
-          ))}
-          {projects?.length === 0 && (
-            <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
-          )}
-        </div>
-
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <button className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-              <Plus className="h-4 w-4" />
-              New Project
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-display">Create project</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="project-name">Project name</Label>
-                <Input
-                  id="project-name"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Marketing launch"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PROJECT_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={cn(
-                        'h-7 w-7 rounded-full border-2',
-                        selectedColor === color ? 'border-foreground' : 'border-transparent',
-                      )}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSelectedColor(color)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <Button onClick={handleCreateProject} disabled={!projectName.trim()} className="w-full">
-                Create project
-              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </SortableContext>
+        </DndContext>
+
+        <button
+          type="button"
+          className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
+          New Project
+        </button>
+
+        {(archivedProjects?.length ?? 0) > 0 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+              onClick={() => setArchivedOpen((value) => !value)}
+            >
+              {archivedOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              Archived ({archivedProjects?.length})
+            </button>
+            {archivedOpen && (
+              <div className="mt-1 space-y-0.5">
+                {archivedProjects?.map((project) => (
+                  <div
+                    key={project.id}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent"
+                  >
+                    <span
+                      className="ml-1 h-2 w-2 shrink-0 rounded-full opacity-60"
+                      style={{ backgroundColor: project.color }}
+                    />
+                    <span className="flex-1 truncate px-1">{project.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      title="Restore project"
+                      onClick={() => unarchiveProject(project.id)}
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-border/60 p-2">
@@ -182,6 +191,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
+            <SyncSettingsItems status={syncStatus} />
             <DropdownMenuItem onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export backup
@@ -191,8 +201,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               Import backup
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light mode
+                </>
+              ) : (
+                <>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark mode
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-              Data stored locally in IndexedDB
+              IndexedDB on this device; sync via Settings
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -202,6 +226,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
+      <CreateProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <aside className="hidden w-64 shrink-0 border-r border-border/70 bg-sidebar md:block">{content}</aside>
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
