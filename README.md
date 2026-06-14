@@ -23,7 +23,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the URL shown in the terminal (typically `http://localhost:5173`).
+The dev server opens your default browser automatically (`server.open` in `vite.config.ts` and `vite --open` in the dev script). If it does not open, check you are on branch `feat/browser-sync` (or `master` after PR #3 merges) — other branches lack this config.
 
 ## Build
 
