@@ -1,0 +1,43 @@
+---
+description: Projocalypse doc structure, terminology, and README sync
+globs: doc/**,README.md,.cursor/README.md
+alwaysApply: false
+---
+
+# Projocalypse documentation
+
+**On fundamental changes** (commands, schema, features, stack, styling): update docs in the same delivery — see **`projocalypse-docs-sync.mdc`** (always apply).
+
+## Start here
+
+- [README.md](../../README.md) — features, commands, tech stack, data storage
+- Cursor setup: [.cursor/README.md](../README.md)
+
+## Terminology
+
+- **Projocalypse** — browser-only project management app (Asana-inspired workflow)
+- **Project** — top-level container with color, sections, and tasks
+- **Section** — column/group within a project (default: To Do, In Progress, Done)
+- **Task** — work item with title, description, due date, priority, completion
+- **Subtask** — checklist item inside a task detail panel
+- **My Tasks** — cross-project view of incomplete tasks
+- **Export backup** — JSON file `projocalypse-backup-YYYY-MM-DD.json`, `ExportData` version `1`
+- **Database** — IndexedDB name `pm-tool` (Dexie)
+
+## When editing features or stack
+
+- Keep README **Features** and **Getting started** sections accurate when behavior or commands change.
+- New user-facing capability → add to README Features list in the same PR.
+- Test commands belong in README **Tests** section; ship gate is `pnpm test:pr` per **`projocalypse-feature-ship.mdc`**.
+
+## Doc layout and naming
+
+- All directories under `doc/` MUST be **CAPITALIZED** (e.g. `PLAN`, `ADR`).
+- All markdown files under `doc/` MUST use **CAPITALIZED** filenames (UPPER-KEBAB or UPPERCASE; e.g. `ROADMAP.md`, `README.md`).
+- Place new docs in the appropriate CAPITALIZED subdir (`PLAN` for planning, `ADR` for decision records if added later).
+
+Matches **`projocalypse-filenames.mdc`**; Projocalypse has no `doc/` tree yet — apply when one is added.
+
+## Repo note
+
+Do not invent features, schema fields, or commands not reflected in README or `src/` unless you are explicitly adding them with matching doc updates in the same task.

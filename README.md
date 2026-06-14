@@ -60,8 +60,7 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`.
 
 - React 19 + Vite + TypeScript
 - Dexie.js + dexie-react-hooks
-- Tailwind CSS v4
-- Radix UI primitives
+- Tailwind CSS v4 + shadcn/ui (Radix primitives in `src/components/ui/`)
 - @dnd-kit for drag and drop
 - react-router-dom
 

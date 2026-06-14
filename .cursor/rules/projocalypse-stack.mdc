@@ -16,8 +16,8 @@ alwaysApply: false
 |-------|--------|
 | UI | React 19, TypeScript, Vite |
 | Routing | react-router-dom |
-| Styling | Tailwind CSS v4, `src/styles/globals.css` |
-| Components | Radix UI primitives in `src/components/ui/` |
+| Styling | Tailwind CSS v4, shadcn/ui primitives — see **`projocalypse-tailwind-shadcn.mdc`** |
+| Components | shadcn/ui in `src/components/ui/` (Radix + `cva` + Tailwind) |
 | Drag and drop | @dnd-kit |
 | Persistence | Dexie.js + dexie-react-hooks; database name `pm-tool` |
 | IDs | `uuid` |

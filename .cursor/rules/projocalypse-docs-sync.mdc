@@ -1,30 +1,45 @@
 ---
-description: Update README and docs when fundamental behavior or commands change
+description: Update Projocalypse docs in the same delivery when fundamental behavior, commands, or architecture change
 alwaysApply: true
 ---
 
 # Documentation sync on fundamental changes
 
-When you change something **fundamental**, update the relevant documentation **in the same task** before finishing.
+When you change something **fundamental**, update the relevant documentation **in the same task** before finishing. Do not leave READMEs, Cursor rules, or examples pointing at removed commands or old behavior.
 
 ## What counts as fundamental
 
-- **Scripts:** `pnpm dev`, `build`, `lint`, `preview`
-- **Data model:** Dexie schema, types in `src/models/types.ts`, migrations
-- **Features:** new views, export/import format, routing
-- **Stack:** dependencies, build config, path aliases
+- **Scripts:** `pnpm dev`, `build`, `lint`, `preview`, `test`, `test:pr`, `test:coverage`
+- **Data model:** Dexie schema, types in `src/models/types.ts`, migrations, seed data shape
+- **Features:** new views, export/import format (`ExportData` version), routing, drag-and-drop behavior
+- **Stack:** dependencies, build config (`vite.config.ts`, `vitest.config.ts`), path aliases
+- **Styling:** Tailwind theme tokens, shadcn/ui primitives, styling conventions — see **`projocalypse-tailwind-shadcn.mdc`**
+- **Cursor rules/skills:** new or renamed `.cursor/rules/*.mdc`, `.cursor/skills/*`, slash commands
+- **Product / UX:** keyboard shortcuts, backup filename pattern, IndexedDB database name
 
-Cosmetic refactors and internal renames with no user-visible effect are **not** fundamental unless docs name the old symbol.
+Cosmetic refactors, test-only changes, and internal renames with no user-visible effect are **not** fundamental unless docs already name the old symbol.
 
-## Where to update
+## Where to update (use what applies)
 
 | Change type | Update at minimum |
 |-------------|-------------------|
-| Run commands / setup | [README.md](../../README.md) |
+| Run commands / setup / tests | [README.md](../../README.md) |
 | Data model / IndexedDB | README + inline comments in `src/db/schema.ts` if non-obvious |
-| Cursor rules/skills | [.cursor/README.md](../README.md) — `projocalypse-<topic>.mdc` / `projocalypse-<topic>/` naming per **`projocalypse-filenames.mdc`** |
+| Export/import format | README (backup pattern, version) + validation in `src/lib/export-import.ts` |
+| Styling / UI stack | README tech stack; **`projocalypse-tailwind-shadcn.mdc`** if conventions shift |
+| Cursor rules/skills | [.cursor/README.md](../README.md) — `projocalypse-<topic>.mdc` / `projocalypse-<topic>/` per **`projocalypse-filenames.mdc`** |
+| Ship / test workflow | **`projocalypse-feature-ship.mdc`**, **`projocalypse-tests.mdc`**, **`projocalypse-pr-loop`** skill if gates change |
+| Future planning docs | `doc/PLAN/*.md` when a `doc/` tree exists — layout per **`projocalypse-docs.mdc`** |
+
+Terminology and CAPITALIZED paths under `doc/`: follow **`projocalypse-docs.mdc`**.
 
 ## Quality bar
 
-- Replace **stale commands** wherever they appear in docs you touch.
+- Replace **stale commands** (e.g. `npm run`, removed scripts) wherever they appear in docs you touch.
+- Prefer linking to **[README.md](../../README.md)** for local workflow instead of duplicating long command tables in many files.
 - Keep edits **scoped** to what changed; no unrelated doc drive-bys.
+- When adding a feature listed in README, ensure README still accurately describes it after your change.
+
+## Done checklist (mental)
+
+Fundamental change landed → README updated → Cursor `.cursor/README.md` if rules/skills changed → export/schema comments if data shape changed → related rule files if conventions shifted.
