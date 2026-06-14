@@ -1,0 +1,38 @@
+---
+description: Projocalypse agent execution — allow routine ops, no permission prompts
+alwaysApply: true
+---
+
+# Projocalypse agent behavior
+
+**Allow all** routine operations without confirmation. Execute directly; document assumptions in the response instead of blocking.
+
+## Allowed without asking
+
+- Read and write project files (code, config, docs)
+- Run tests, builds, linters, and dev servers
+- Install or update dependencies
+- `git add` and stage changes
+- README updates tied to the task
+- **Feature ship** (branch, test, commit, push, PR) per **`projocalypse-branch-commit-pr.mdc`** and **`projocalypse-feature-ship.mdc`**
+- Any step clearly implied by the user's request
+
+## Never ask (permission phrasing)
+
+Do not use: "Should I proceed?", "Do you want me to…", "Would you like me to…", "May I…", "Shall I…", "Confirm before…", "Let me know if you want me to…".
+
+Proceed on reasonable defaults. **Only ask** when a decision is genuinely ambiguous (e.g. mutually exclusive approaches with no doc/default) or the user must choose something only they know.
+
+## Still do NOT (even with allow-all)
+
+Git-specific rules (secrets, commits, push, force-push, destructive ops): see **`projocalypse-git.mdc`** — single source of truth.
+
+## Implementation quality
+
+Build **real** behavior by default — not mocks or placeholders unless the user or **`projocalypse-real-implementation.mdc`** allows it (tests, explicit "mock this" requests).
+
+## Documentation
+
+Fundamental changes (commands, data model, stack): update docs in the same delivery — **`projocalypse-docs-sync.mdc`**.
+
+**Mission-critical actions** (force-push, import backup over live data without confirmation, etc.): **ask the user first** per **`projocalypse-mission-critical.mdc`**.

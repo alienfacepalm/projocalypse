@@ -1,0 +1,64 @@
+---
+description: File and directory naming — kebab-case on disk, PascalCase symbols in code
+globs: "src/**"
+alwaysApply: false
+---
+
+# Projocalypse file and directory naming
+
+Adapted from [talemail](https://github.com/alienfacepalm/talemail) conventions: **kebab-case** for all TypeScript module paths on disk. React component **symbols** in code stay **PascalCase**.
+
+Related: **`projocalypse-typescript.mdc`** (symbols inside files).
+
+## Source (`src/**`)
+
+| Location | File pattern | Example |
+|----------|--------------|---------|
+| `src/components/**` (layout, project, task, my-tasks, `ui/`) | **kebab-case** `.tsx` | `task-detail-panel.tsx`, `board-view.tsx`, `button.tsx` |
+| `src/hooks/`, `src/lib/`, `src/db/`, `src/context/` | **kebab-case** `.ts` / `.tsx` | `use-project-view-mode.ts`, `export-import.ts`, `task-drag.ts` |
+| `src/models/` | **kebab-case** `.ts` for modules; legacy `types.ts` unchanged | `types.ts` (legacy) |
+| `src/styles/` | **kebab-case** `.css` | `globals.css` |
+
+- **Directories** under `src/` use **kebab-case** (`my-tasks/`, `project/`, `task/`).
+- **Symbols in code** stay conventional: React components and types remain **PascalCase**; functions and variables use **camelCase**. Only **paths on disk** follow this rule.
+
+### Toolchain entry files (keep as-is)
+
+Bundler or framework entry files the toolchain expects by name may keep that name:
+
+- `src/App.tsx`, `src/main.tsx`
+- `index.html`, `vite.config.ts`, `eslint.config.js`
+
+Prefer kebab-case for everything else you add under `src/`.
+
+### Legacy (no rename unless the task includes migration)
+
+- `src/models/types.ts` — keep filename; migrate symbols per **`projocalypse-typescript.mdc`**
+
+## Cursor rules and skills (`.cursor/`)
+
+| Kind | Pattern | Example |
+|------|---------|---------|
+| Project rules | `projocalypse-<topic>.mdc` | `projocalypse-typescript.mdc` |
+| Project skills | `projocalypse-<topic>/` directory | `projocalypse-pr-loop/` |
+| Skill `name` in frontmatter | `projocalypse-<topic>` | `projocalypse-karpathy-guidelines` |
+
+Lowercase, kebab-case, short and specific — not `projocalypse-stuff`.
+
+## Documentation
+
+| Location | Pattern | Example |
+|----------|---------|---------|
+| Repo root | `README.md` | `README.md` |
+| Future `doc/` tree (if added) | **CAPITALIZED** directory and **UPPER-KEBAB** or **UPPERCASE** filenames | `doc/PLAN/ROADMAP.md` |
+
+Matches talemail `talemail-docs.mdc` doc layout; Projocalypse has no `doc/` tree yet — apply when one is added.
+
+## Export / backup filenames
+
+- JSON backups: `projocalypse-backup-YYYY-MM-DD.json` (kebab-case, lowercase product slug).
+
+## When editing
+
+- **New files** must follow the table above.
+- **Renames** only when the task explicitly includes migration — avoid drive-by renames.

@@ -1,0 +1,40 @@
+---
+description: Feature work uses dedicated branches — naming, base branch, PR flow
+alwaysApply: true
+---
+
+# Projocalypse feature branches
+
+New **features** (user-facing capability or multi-file behavior change) must not land as direct commits on `main` / `master`. Use a **feature branch**; commit, push, and PR per **`projocalypse-branch-commit-pr.mdc`**; tests per **`projocalypse-feature-ship.mdc`**.
+
+Related: **`projocalypse-git.mdc`**. **`projocalypse-agent-behavior.mdc`**.
+
+## When a feature branch is required
+
+- New UI behavior, data model changes, or a cohesive change the user describes as a feature.
+- Work expected to span multiple commits or more than a trivial one-file fix.
+
+## When you may stay on the current branch
+
+- **Docs-only** or **single-line** fixes the user scoped as a quick patch (use `docs/` or `fix/` prefix if you still branch).
+- User explicitly says to commit on `main` / current branch.
+
+## Agent workflow
+
+1. Before editing, check branch: `git branch --show-current`.
+2. If on `main` / `master` and the task is feature work, **create and switch** to a new branch:
+   - `git fetch origin` when remote exists; base off updated default.
+   - `git checkout -b <type>/<short-kebab-description>`.
+3. Do feature commits on that branch only.
+4. When delivery is complete → test (**`projocalypse-feature-ship.mdc`**), then commit → push → PR.
+
+## Branch naming
+
+| Prefix | Use |
+|--------|-----|
+| `feat/` | New capability or substantial enhancement |
+| `fix/` | Bug fix (non-trivial) |
+| `chore/` | Tooling, deps, refactors with no user-visible change |
+| `docs/` | Documentation-only |
+
+Lowercase, kebab-case, short and specific: `feat/board-drag-drop`, not `feat/stuff`.

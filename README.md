@@ -17,8 +17,8 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open the URL shown in the terminal (typically `http://localhost:5173`).
@@ -26,14 +26,14 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 ## Build
 
 ```bash
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
 ## Lint
 
 ```bash
-npm run lint
+pnpm lint
 ```
 
 ## Data storage

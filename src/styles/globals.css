@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f4f0e8;
+  --color-foreground: #1a1714;
+  --color-muted: #ebe4d8;
+  --color-muted-foreground: #6b645c;
+  --color-border: #d9d0c3;
+  --color-input: #c8bfb0;
+  --color-ring: #c94e2a;
+  --color-primary: #c94e2a;
+  --color-primary-foreground: #fff8f2;
+  --color-secondary: #e8e0d2;
+  --color-secondary-foreground: #1a1714;
+  --color-accent: #e3d9c8;
+  --color-accent-foreground: #1a1714;
+  --color-destructive: #b42318;
+  --color-destructive-foreground: #fff8f2;
+  --color-popover: #faf7f1;
+  --color-popover-foreground: #1a1714;
+  --color-card: #faf7f1;
+  --color-sidebar: #ece5da;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-foreground);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201, 78, 42, 0.08), transparent),
+    linear-gradient(180deg, #f7f3eb 0%, var(--color-background) 40%);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+@import "react-day-picker/style.css";

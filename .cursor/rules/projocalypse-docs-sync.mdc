@@ -1,0 +1,30 @@
+---
+description: Update README and docs when fundamental behavior or commands change
+alwaysApply: true
+---
+
+# Documentation sync on fundamental changes
+
+When you change something **fundamental**, update the relevant documentation **in the same task** before finishing.
+
+## What counts as fundamental
+
+- **Scripts:** `pnpm dev`, `build`, `lint`, `preview`
+- **Data model:** Dexie schema, types in `src/models/types.ts`, migrations
+- **Features:** new views, export/import format, routing
+- **Stack:** dependencies, build config, path aliases
+
+Cosmetic refactors and internal renames with no user-visible effect are **not** fundamental unless docs name the old symbol.
+
+## Where to update
+
+| Change type | Update at minimum |
+|-------------|-------------------|
+| Run commands / setup | [README.md](../../README.md) |
+| Data model / IndexedDB | README + inline comments in `src/db/schema.ts` if non-obvious |
+| Cursor rules/skills | [.cursor/README.md](../README.md) — `projocalypse-<topic>.mdc` / `projocalypse-<topic>/` naming per **`projocalypse-filenames.mdc`** |
+
+## Quality bar
+
+- Replace **stale commands** wherever they appear in docs you touch.
+- Keep edits **scoped** to what changed; no unrelated doc drive-bys.

@@ -1,0 +1,30 @@
+---
+description: Ask the user before mission-critical or irreversible actions
+alwaysApply: true
+---
+
+# Projocalypse — mission-critical confirmations
+
+Before executing actions in the categories below, **stop and ask the user** with a short, specific question. List what you intend to do, the risk, and the default if they do not answer.
+
+This rule **overrides** "never ask permission" in **`projocalypse-agent-behavior.mdc`** for these cases only.
+
+## Always ask first
+
+| Category | Examples |
+|----------|----------|
+| **Remote git** | Force-push, delete remote branch, merge PR without user request |
+| **Data loss** | Hard reset, `git clean`, clearing IndexedDB without export, import backup over live data without confirmation |
+| **Security** | Committing or printing credentials |
+| **Breaking changes** | Dexie schema migrations that drop tables without migration path |
+
+## Do not ask (still execute)
+
+- Local `pnpm install`, unit tests, linters, reading docs/code.
+- Creating a **feature branch**, commit, **`git push`**, and **`gh pr create`** on that branch when deliverable work is complete — **`projocalypse-branch-commit-pr.mdc`**, **`projocalypse-feature-ship.mdc`**.
+- Edits confined to the task scope on a dev machine with no remote side effects.
+
+## How to ask
+
+- One clear question; bullet the planned action and risk.
+- Do not use vague permission phrasing — state **what** needs a yes/no.

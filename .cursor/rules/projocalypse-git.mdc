@@ -1,0 +1,28 @@
+---
+description: Projocalypse git hygiene — no secrets, safe main branch, commit policy
+alwaysApply: true
+---
+
+# Projocalypse git
+
+Feature work: **`projocalypse-branch-commit-pr.mdc`**, **`projocalypse-feature-branches.mdc`**, **`projocalypse-feature-ship.mdc`**.
+
+## Secrets and remote safety
+
+- **Never commit** secrets: API keys, tokens, or credentials in source files.
+- Prefer `.env.example` with placeholder names only if env vars are added later.
+- **Do not force-push** `main` / `master` unless the user explicitly requests it.
+- **Do not commit or push deliverable work on `main` / `master`** — use a feature branch + PR (**`projocalypse-branch-commit-pr.mdc`**).
+- **Push / open PR:** auto when a feature is complete; otherwise only on explicit user ask.
+
+## Commits
+
+- **On a feature branch only** for deliverable work (**`projocalypse-branch-commit-pr.mdc`**).
+- **OK:** when the user requested delivery end-to-end — feature, fix, doc set they asked for, explicit "commit this", or a chore tied to an explicit task.
+- **Not OK:** commits on `main` / `master` for shippable work; drive-by edits unless the user asked.
+- Messages: concise imperative (`chore:`, `docs:`, `feat:`, `fix:`) matching existing history.
+
+## Never (git/filesystem)
+
+- **Update git config**
+- **Destructive or irreversible** ops without explicit user request (hard reset, force push, mass delete outside task scope)

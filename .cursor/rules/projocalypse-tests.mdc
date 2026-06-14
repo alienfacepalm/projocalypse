@@ -1,0 +1,41 @@
+---
+description: Require automated tests for new features and behavior changes
+alwaysApply: true
+---
+
+# Projocalypse — tests required for new features
+
+## When tests are required
+
+Add or extend automated tests in the **same PR** when you:
+
+- Ship **new user-facing behavior** (views, task flows, drag-and-drop, export/import).
+- Change **business rules** (sort order, completion logic, schema shape).
+- Fix a **regression** — include a test that would have caught it.
+
+Docs-only, comment-only, or dependency bumps with no logic change are exempt unless they alter runtime behavior.
+
+## Where tests live
+
+| Area | Runner | Location |
+|------|--------|----------|
+| Pure functions (export/import, utils) | Vitest (when configured) | `src/**/*.test.ts` |
+| React components / hooks | Vitest + Testing Library (when configured) | `src/**/*.test.tsx` |
+
+Until a test runner is configured, run **`pnpm lint && pnpm build`** as the minimum verification gate per **`projocalypse-feature-ship.mdc`**.
+
+## What to test
+
+- **Pure functions first** — export/import transforms, sort helpers, date formatting.
+- **DB operations** — use Dexie in-memory or mocked tables for CRUD logic.
+- **Avoid** — flaky tests that depend on real browser IndexedDB in CI without isolation.
+
+## Before ship / merge
+
+- Run **scoped checks** from the table in **`projocalypse-feature-ship.mdc`** (match commands to changed paths).
+- New export format changes keep `ExportData` version and README in sync (see **`projocalypse-docs-sync.mdc`**).
+
+## Do not
+
+- Merge feature work with `test` scripts missing or permanently skipped without a tracked follow-up.
+- Disable failing tests instead of fixing behavior.

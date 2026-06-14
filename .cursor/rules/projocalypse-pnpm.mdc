@@ -1,0 +1,32 @@
+---
+description: Projocalypse package manager — pnpm only; no npm/yarn lockfiles
+globs: package.json,pnpm-lock.yaml,**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Projocalypse package manager (locked)
+
+## pnpm only
+
+- **pnpm only** — never `npm install`, `npm ci`, `yarn`, or commit `package-lock.json` / `yarn.lock`.
+- Root `packageManager` field pins pnpm; use `pnpm add`, `pnpm install`, `pnpm exec`.
+- Lockfile: **`pnpm-lock.yaml`** at repo root.
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Install deps | `pnpm install` |
+| Dev server | `pnpm dev` |
+| Production build | `pnpm build` |
+| Lint | `pnpm lint` |
+| Preview build | `pnpm preview` |
+| Add dependency | `pnpm add <pkg>` |
+| Add dev dependency | `pnpm add -D <pkg>` |
+
+## When editing
+
+- After changing `package.json`, run `pnpm install` and commit `pnpm-lock.yaml` with the change.
+- Agents and docs use `pnpm` / `pnpm run <script>` — not `npm run`.
+
+Related: **`projocalypse-stack.mdc`**, **`projocalypse-feature-ship.mdc`**.
