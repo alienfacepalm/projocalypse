@@ -11,6 +11,7 @@ import {
   deleteTask,
   moveTask,
   reorderTasks,
+  removeGettingStartedProjects,
   setTaskPriority,
   toggleTaskComplete,
   updateProject,
@@ -193,5 +194,30 @@ describe('project lifecycle', () => {
     const next = await createProject('Next', '#5DA283')
     expect(next.sortOrder).toBe(1)
     expect(active.sortOrder).toBe(0)
+  })
+})
+
+describe('removeGettingStartedProjects', () => {
+  beforeEach(async () => {
+    await clearDb()
+  })
+
+  it('deletes all projects named Getting Started', async () => {
+    const demo = await createProject('Getting Started', '#4573D2')
+    const section = await db.sections.where('projectId').equals(demo.id).first()
+    await createTask(demo.id, section!.id, 'Demo task')
+    await createProject('My Work', '#5DA283')
+
+    await removeGettingStartedProjects()
+
+    expect(await db.projects.count()).toBe(1)
+    expect((await db.projects.toCollection().first())?.name).toBe('My Work')
+    expect(await db.tasks.count()).toBe(0)
+  })
+
+  it('is a no-op when no Getting Started projects exist', async () => {
+    await createProject('My Work', '#5DA283')
+    await removeGettingStartedProjects()
+    expect(await db.projects.count()).toBe(1)
   })
 })
