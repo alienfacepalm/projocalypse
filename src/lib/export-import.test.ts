@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { exportData, importData, parseImportJson, validateExportData } from '@/lib/export-import'
+import { exportData, importData, importSyncData, parseImportJson, validateExportData } from '@/lib/export-import'
 import { clearDb, makeExportData, makeProject, makeSection, makeSubtask, makeTask } from '@/test/db-helpers'
 import { db } from '@/db/schema'
 
@@ -79,6 +79,32 @@ describe('exportData and importData', () => {
     const projects = await db.projects.toArray()
     expect(projects).toHaveLength(1)
     expect(projects[0].name).toBe('New')
+  })
+})
+
+describe('importSyncData', () => {
+  it('imports tombstones and removes tombstoned entities', async () => {
+    await clearDb()
+    const data = makeExportData()
+    await importSyncData(data, [{ id: 'task-1', entityType: 'task', deletedAt: Date.now() + 1000 }])
+
+    expect(await db.tasks.count()).toBe(0)
+    expect(await db.tombstones.count()).toBe(1)
+  })
+
+  it('dedupes duplicate tombstone ids on re-import', async () => {
+    await clearDb()
+    const data = makeExportData()
+    const tombstones = [
+      { id: 'task-1', entityType: 'task' as const, deletedAt: 100 },
+      { id: 'task-1', entityType: 'task' as const, deletedAt: 200 },
+    ]
+
+    await importSyncData(data, tombstones)
+    await importSyncData(data, tombstones)
+
+    expect(await db.tombstones.count()).toBe(1)
+    expect((await db.tombstones.get('task-1'))?.deletedAt).toBe(200)
   })
 })
 

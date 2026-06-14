@@ -162,7 +162,15 @@ function fingerprintSyncSlice(slice: SyncSlice): string {
   return syncJsonByteLength(slice) + ':' + slice.syncedAt + ':' + slice.projects.length + slice.tasks.length
 }
 
+let pullRemoteMutex: Promise<boolean> = Promise.resolve(false)
+
 export async function pullRemoteSync(baseline?: SyncSlice): Promise<boolean> {
+  const result = pullRemoteMutex.then(() => pullRemoteSyncOnce(baseline))
+  pullRemoteMutex = result.catch(() => false)
+  return result
+}
+
+async function pullRemoteSyncOnce(baseline?: SyncSlice): Promise<boolean> {
   const merged = await loadAndMergeSync(baseline)
   if (!merged) return false
   const fingerprint = fingerprintSyncSlice(merged)

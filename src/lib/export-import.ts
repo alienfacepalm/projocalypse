@@ -1,5 +1,5 @@
 import { db } from '@/db/schema'
-import { enforceTombstones } from '@/db/tombstones'
+import { enforceTombstones, mergeTombstoneLists } from '@/db/tombstones'
 import type { ExportData, Priority, Project, Section, Subtask, Task, Tombstone } from '@/models/types'
 
 export async function exportData(): Promise<ExportData> {
@@ -186,7 +186,7 @@ export async function importData(data: ExportData): Promise<void> {
 
 export async function importSyncData(data: ExportData, tombstones: Tombstone[]): Promise<void> {
   validateExportData(data)
-  await db.tombstones.clear()
+  const uniqueTombstones = mergeTombstoneLists(tombstones, [])
 
   await db.transaction('rw', db.projects, db.sections, db.tasks, db.subtasks, async () => {
     await db.subtasks.clear()
@@ -200,8 +200,12 @@ export async function importSyncData(data: ExportData, tombstones: Tombstone[]):
     await db.subtasks.bulkAdd(data.subtasks)
   })
 
-  if (tombstones.length > 0) {
-    await db.tombstones.bulkAdd(tombstones)
-  }
+  await db.transaction('rw', db.tombstones, async () => {
+    await db.tombstones.clear()
+    if (uniqueTombstones.length > 0) {
+      await db.tombstones.bulkPut(uniqueTombstones)
+    }
+  })
+
   await enforceTombstones()
 }
