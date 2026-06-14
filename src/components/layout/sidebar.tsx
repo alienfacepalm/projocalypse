@@ -3,19 +3,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useLocation } from 'react-router-dom'
 import { CheckSquare, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
-import { createProject } from '@/db/operations'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
 import { useTheme } from '@/hooks/use-theme'
 import { cn, downloadJson } from '@/lib/utils'
-import { PROJECT_COLORS } from '@/models/types'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 interface SidebarProps {
   open: boolean
@@ -35,18 +25,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const projects = useLiveQuery(() => db.projects.filter((p) => !p.archived).sortBy('sortOrder'), [])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [projectName, setProjectName] = useState('')
-  const [selectedColor, setSelectedColor] = useState<string>(PROJECT_COLORS[3])
   const [importError, setImportError] = useState<string | null>(null)
   const [theme, setTheme] = useTheme()
-
-  async function handleCreateProject() {
-    const name = projectName.trim()
-    if (!name) return
-    await createProject(name, selectedColor)
-    setProjectName('')
-    setDialogOpen(false)
-  }
 
   async function handleExport() {
     const data = await exportData()
@@ -125,52 +105,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           )}
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <button className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-              <Plus className="h-4 w-4" />
-              New Project
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-display">Create project</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="project-name">Project name</Label>
-                <Input
-                  id="project-name"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Marketing launch"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PROJECT_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={cn(
-                        'h-7 w-7 rounded-full border-2',
-                        selectedColor === color ? 'border-foreground' : 'border-transparent',
-                      )}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSelectedColor(color)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <Button onClick={handleCreateProject} disabled={!projectName.trim()} className="w-full">
-                Create project
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <button
+          type="button"
+          className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
+          New Project
+        </button>
       </nav>
 
       <div className="border-t border-border/60 p-2">
@@ -218,6 +160,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
+      <CreateProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <aside className="hidden w-64 shrink-0 border-r border-border/70 bg-sidebar md:block">{content}</aside>
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
