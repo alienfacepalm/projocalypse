@@ -11,10 +11,12 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { db } from '@/db/schema'
-import { reorderTasks } from '@/db/operations'
-import type { Task } from '@/models/types'
+import { reorderSections, reorderTasks } from '@/db/operations'
+import type { Section, Task } from '@/models/types'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
+import { computeSectionReorderUpdates, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
 import { AddSectionButton, SectionBlock } from './section-header'
 import { TaskRow } from './task-row'
 import { QuickAddTask } from '@/components/task/quick-add-task'
@@ -53,6 +55,7 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
   const allTasks = useLiveQuery(() => db.tasks.where('projectId').equals(projectId).toArray(), [projectId])
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [activeSection, setActiveSection] = useState<Section | null>(null)
 
   const tasksBySection = useMemo(() => {
     const map = new Map<string, Task[]>()
@@ -68,24 +71,44 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
   }, [allTasks])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const sectionSortableIds = (sections ?? []).map((section) => sortableSectionId(section.id))
 
   function toggleSection(sectionId: string) {
     setCollapsedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }))
   }
 
   function handleDragStart(event: DragStartEvent) {
-    const task = allTasks?.find((t) => t.id === event.active.id)
+    const activeId = String(event.active.id)
+    if (activeId.startsWith('section:')) {
+      const section = sections?.find((item) => sortableSectionId(item.id) === activeId)
+      if (section) setActiveSection(section)
+      return
+    }
+    const task = allTasks?.find((item) => item.id === activeId)
     if (task) setActiveTask(task)
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     setActiveTask(null)
+    setActiveSection(null)
     const { active, over } = event
-    if (!over || !allTasks) return
+    if (!over || !allTasks || !sections) return
 
-    const updates = computeTaskReorderUpdates(allTasks, String(active.id), String(over.id))
+    const activeId = String(active.id)
+    const overId = String(over.id)
+
+    if (activeId.startsWith('section:')) {
+      const updates = computeSectionReorderUpdates(
+        sections,
+        sectionIdFromSortableId(activeId),
+        sectionIdFromSortableId(overId),
+      )
+      if (updates) await reorderSections(updates)
+      return
+    }
+
+    const updates = computeTaskReorderUpdates(allTasks, activeId, overId)
     if (!updates) return
-
     await reorderTasks(updates)
   }
 
@@ -99,22 +122,30 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
             <QuickAddTask projectId={projectId} sectionId={firstSectionId} placeholder="Add task to first section…" />
           </div>
         )}
-        {sections?.map((section) => (
-          <SectionDropZone key={section.id} sectionId={section.id} collapsed={!!collapsedSections[section.id]}>
-            <SectionBlock
-              section={section}
-              tasks={tasksBySection.get(section.id) ?? []}
-              projectId={projectId}
-              showCompleted={showCompleted}
-              collapsed={!!collapsedSections[section.id]}
-              onToggle={() => toggleSection(section.id)}
-            />
-          </SectionDropZone>
-        ))}
+        <SortableContext items={sectionSortableIds} strategy={verticalListSortingStrategy}>
+          {sections?.map((section) => (
+            <SectionDropZone key={section.id} sectionId={section.id} collapsed={!!collapsedSections[section.id]}>
+              <SectionBlock
+                section={section}
+                tasks={tasksBySection.get(section.id) ?? []}
+                projectId={projectId}
+                showCompleted={showCompleted}
+                collapsed={!!collapsedSections[section.id]}
+                onToggle={() => toggleSection(section.id)}
+                sortable
+              />
+            </SectionDropZone>
+          ))}
+        </SortableContext>
         <AddSectionButton projectId={projectId} />
       </div>
       <DragOverlay>
         {activeTask ? <TaskRow task={activeTask} draggable={false} /> : null}
+        {activeSection ? (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-semibold shadow-md">
+            {activeSection.name}
+          </div>
+        ) : null}
       </DragOverlay>
     </DndContext>
   )

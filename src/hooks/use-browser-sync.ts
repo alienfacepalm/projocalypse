@@ -11,11 +11,12 @@ import {
 } from '@/lib/sync/browser-sync'
 
 async function getDbRevision(): Promise<string> {
-  const [projects, sections, tasks, subtasks] = await Promise.all([
+  const [projects, sections, tasks, subtasks, tombstones] = await Promise.all([
     db.projects.toArray(),
     db.sections.toArray(),
     db.tasks.toArray(),
     db.subtasks.toArray(),
+    db.tombstones.toArray(),
   ])
   const maxUpdatedAt = Math.max(
     0,
@@ -24,7 +25,7 @@ async function getDbRevision(): Promise<string> {
     ...tasks.map((t) => t.updatedAt),
     ...subtasks.map((s) => s.updatedAt),
   )
-  return `${projects.length}-${sections.length}-${tasks.length}-${subtasks.length}-${maxUpdatedAt}`
+  return `${projects.length}-${sections.length}-${tasks.length}-${subtasks.length}-${tombstones.length}-${maxUpdatedAt}`
 }
 
 export function useBrowserSync(): SyncStatus {

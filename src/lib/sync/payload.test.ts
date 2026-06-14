@@ -52,6 +52,21 @@ describe('mergeSyncSlices', () => {
   it('returns undefined when both sources empty', () => {
     expect(mergeSyncSlices({})).toBeUndefined()
   })
+
+  it('merges tombstones and filters deleted entities', () => {
+    const cloud = exportToSyncSlice(makeExportData({ exportedAt: 500 }), [
+      { id: 't1', entityType: 'task', deletedAt: 500 },
+    ])
+    const mirror = exportToSyncSlice(
+      makeExportData({
+        tasks: [makeTask({ id: 't1', title: 'Should go', updatedAt: 100 })],
+        exportedAt: 100,
+      }),
+    )
+    const merged = mergeSyncSlices({ cloud, mirror })
+    expect(merged?.tasks.find((task) => task.id === 't1')).toBeUndefined()
+    expect(merged?.tombstones?.some((t) => t.id === 't1')).toBe(true)
+  })
 })
 
 describe('mergeSyncWithBaseline', () => {

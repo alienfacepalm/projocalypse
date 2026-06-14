@@ -1,11 +1,14 @@
-import type { ExportData, SyncSlice } from '@/models/types'
+import type { ExportData, SyncSlice, Tombstone, TombstoneEntityType } from '@/models/types'
 import { validateExportData } from '@/lib/export-import'
+import { filterByTombstones, mergeTombstoneLists, tombstoneMap } from '@/db/tombstones'
 import { mergePreferNewerBaseline, mergeSyncSources } from '@/lib/sync/merge'
 
-export const SYNC_SLICE_VERSION = 1 as const
+export const SYNC_SLICE_VERSION = 2 as const
 export const SYNC_MIRROR_KEY = 'projocalypseSyncMirror'
 export const SYNC_CLOUD_KEY = 'projocalypseSyncCloud'
 export const SYNC_FILE_NAME = 'projocalypse-sync.json'
+
+const TOMBSTONE_ENTITY_TYPES = new Set<TombstoneEntityType>(['project', 'section', 'task', 'subtask'])
 
 export function syncJsonByteLength(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length
@@ -18,7 +21,33 @@ export function isSyncPayloadTooLargeForLocalStorage(slice: SyncSlice): boolean 
   return syncJsonByteLength(slice) > SYNC_LOCAL_STORAGE_SOFT_MAX_BYTES
 }
 
-export function exportToSyncSlice(data: ExportData): SyncSlice {
+function parseTombstones(raw: unknown): Tombstone[] {
+  if (raw === undefined) return []
+  if (!Array.isArray(raw)) {
+    throw new Error('Invalid sync payload — "tombstones" must be an array when present.')
+  }
+  return raw.map((item, index) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new Error(`Invalid sync payload — tombstones[${index}] must be an object.`)
+    }
+    const record = item as Record<string, unknown>
+    const entityType = record.entityType
+    if (typeof entityType !== 'string' || !TOMBSTONE_ENTITY_TYPES.has(entityType as TombstoneEntityType)) {
+      throw new Error(`Invalid sync payload — tombstones[${index}].entityType is invalid.`)
+    }
+    const id = record.id
+    if (typeof id !== 'string' || id.trim() === '') {
+      throw new Error(`Invalid sync payload — tombstones[${index}].id must be a non-empty string.`)
+    }
+    const deletedAt = record.deletedAt
+    if (typeof deletedAt !== 'number' || Number.isNaN(deletedAt)) {
+      throw new Error(`Invalid sync payload — tombstones[${index}].deletedAt must be a number.`)
+    }
+    return { id, entityType: entityType as TombstoneEntityType, deletedAt }
+  })
+}
+
+export function exportToSyncSlice(data: ExportData, tombstones: Tombstone[] = []): SyncSlice {
   return {
     version: SYNC_SLICE_VERSION,
     syncedAt: data.exportedAt,
@@ -26,6 +55,7 @@ export function exportToSyncSlice(data: ExportData): SyncSlice {
     sections: data.sections,
     tasks: data.tasks,
     subtasks: data.subtasks,
+    tombstones,
   }
 }
 
@@ -45,6 +75,10 @@ export function validateSyncSlice(data: unknown): SyncSlice {
     throw new Error('Invalid sync payload — expected a JSON object at the top level.')
   }
   const record = data as Record<string, unknown>
+  const version = record.version
+  if (version !== 1 && version !== 2) {
+    throw new Error(`Unsupported sync version (${String(version)}).`)
+  }
   const syncedAt = record.syncedAt
   if (typeof syncedAt !== 'number' || Number.isNaN(syncedAt)) {
     throw new Error('Invalid sync payload — "syncedAt" must be a number.')
@@ -54,7 +88,8 @@ export function validateSyncSlice(data: unknown): SyncSlice {
     version: 1,
     exportedAt: syncedAt,
   })
-  return exportToSyncSlice(exportData)
+  const tombstones = parseTombstones(record.tombstones)
+  return exportToSyncSlice(exportData, tombstones)
 }
 
 export function parseSyncJson(text: string): SyncSlice {
@@ -80,15 +115,31 @@ export interface SyncSources {
   mirror?: SyncSlice
 }
 
+function applyTombstonesToSlice(slice: SyncSlice, tombstones: Tombstone[]): SyncSlice {
+  const map = tombstoneMap(tombstones)
+  return {
+    ...slice,
+    version: SYNC_SLICE_VERSION,
+    tombstones,
+    projects: filterByTombstones(slice.projects, map),
+    sections: filterByTombstones(slice.sections, map),
+    tasks: filterByTombstones(slice.tasks, map),
+    subtasks: filterByTombstones(slice.subtasks, map),
+  }
+}
+
 /** Merge cloud + mirror slices the way Tabocalypse merges storage.sync + local mirror. */
 export function mergeSyncSlices(sources: SyncSources): SyncSlice | undefined {
   const { cloud, mirror } = sources
   if (!cloud && !mirror) return undefined
 
-  const projects = mergeSyncSources(cloud?.projects, mirror?.projects)
-  const sections = mergeSyncSources(cloud?.sections, mirror?.sections)
-  const tasks = mergeSyncSources(cloud?.tasks, mirror?.tasks)
-  const subtasks = mergeSyncSources(cloud?.subtasks, mirror?.subtasks)
+  const tombstones = mergeTombstoneLists(cloud?.tombstones ?? [], mirror?.tombstones ?? [])
+  const map = tombstoneMap(tombstones)
+
+  const projects = filterByTombstones(mergeSyncSources(cloud?.projects, mirror?.projects), map)
+  const sections = filterByTombstones(mergeSyncSources(cloud?.sections, mirror?.sections), map)
+  const tasks = filterByTombstones(mergeSyncSources(cloud?.tasks, mirror?.tasks), map)
+  const subtasks = filterByTombstones(mergeSyncSources(cloud?.subtasks, mirror?.subtasks), map)
 
   return {
     version: SYNC_SLICE_VERSION,
@@ -97,18 +148,24 @@ export function mergeSyncSlices(sources: SyncSources): SyncSlice | undefined {
     sections,
     tasks,
     subtasks,
+    tombstones,
   }
 }
 
 /** Merge a reload from sync with unsaved in-memory baseline (Tabocalypse hydration pattern). */
 export function mergeSyncWithBaseline(baseline: SyncSlice, incoming: SyncSlice): SyncSlice {
-  return {
-    version: SYNC_SLICE_VERSION,
-    syncedAt: Math.max(baseline.syncedAt, incoming.syncedAt),
-    projects: mergePreferNewerBaseline(baseline.projects, incoming.projects),
-    sections: mergePreferNewerBaseline(baseline.sections, incoming.sections),
-    tasks: mergePreferNewerBaseline(baseline.tasks, incoming.tasks),
-    subtasks: mergePreferNewerBaseline(baseline.subtasks, incoming.subtasks),
-  }
+  const tombstones = mergeTombstoneLists(baseline.tombstones ?? [], incoming.tombstones ?? [])
+  const map = tombstoneMap(tombstones)
+  return applyTombstonesToSlice(
+    {
+      version: SYNC_SLICE_VERSION,
+      syncedAt: Math.max(baseline.syncedAt, incoming.syncedAt),
+      projects: mergePreferNewerBaseline(baseline.projects, incoming.projects, map),
+      sections: mergePreferNewerBaseline(baseline.sections, incoming.sections, map),
+      tasks: mergePreferNewerBaseline(baseline.tasks, incoming.tasks, map),
+      subtasks: mergePreferNewerBaseline(baseline.subtasks, incoming.subtasks, map),
+      tombstones,
+    },
+    tombstones,
+  )
 }
-

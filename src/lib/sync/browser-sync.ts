@@ -12,7 +12,8 @@ import {
   validateSyncSlice,
 } from '@/lib/sync/payload'
 import { removeGettingStartedProjects } from '@/db/operations'
-import { exportData, importData } from '@/lib/export-import'
+import { getAllTombstones } from '@/db/tombstones'
+import { importSyncData, exportData } from '@/lib/export-import'
 import { db } from '@/db/schema'
 import type { SyncSlice } from '@/models/types'
 import { SYNC_FILE_NAME } from '@/lib/sync/payload'
@@ -131,18 +132,20 @@ async function loadSources(): Promise<SyncSources> {
 
 export async function buildSyncSliceFromDb(): Promise<SyncSlice> {
   const data = await exportData()
+  const tombstones = await getAllTombstones()
   return {
-    version: 1,
+    version: 2,
     syncedAt: data.exportedAt,
     projects: data.projects,
     sections: data.sections,
     tasks: data.tasks,
     subtasks: data.subtasks,
+    tombstones,
   }
 }
 
 export async function applySyncSliceToDb(slice: SyncSlice): Promise<void> {
-  await importData(syncSliceToExportData(slice))
+  await importSyncData(syncSliceToExportData(slice), slice.tombstones ?? [])
 }
 
 export async function loadAndMergeSync(baseline?: SyncSlice): Promise<SyncSlice | undefined> {

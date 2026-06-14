@@ -9,12 +9,17 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **Subtasks** inside the task detail panel
 - **List view** — sections as collapsible groups with inline quick-add
 - **Board view** — Kanban columns mapped to sections
-- **My Tasks** — all incomplete tasks across projects
+- **My Tasks** — incomplete tasks across active projects; smart lists (Today, Upcoming, Overdue) and filters
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
 - **Export / import** — validated JSON backup from Settings in the sidebar
 - **Dark mode** — toggle in Settings; preference saved in `localStorage`
 - **Browser sync** — no-server sync across tabs (localStorage mirror) and across devices via a linked sync file in iCloud/Dropbox/Google Drive (File System Access API); conflicts resolved by per-item `updatedAt` (newer wins, ties prefer local)
-- **Project archive & delete** — from the project header menu
+- **Project archive & delete** — from the project header menu; restore archived projects from the sidebar
+- **Global search** — find tasks and projects from the sidebar
+- **My Tasks smart lists** — All, Today, Upcoming, Overdue with project and priority filters
+- **Reorder** — drag projects in the sidebar; drag sections in list view
+- **Section picker** — change a task's section from the task detail panel
+- **Board section management** — rename, delete, and add sections on the board
 
 ## Getting started
 
@@ -67,7 +72,7 @@ Projocalypse follows the same offline-first sync pattern as [Tabocalypse](https:
 
 Open **Settings → Browser sync** to create or link a sync file. Edits debounce into the mirror and sync file automatically; other tabs pick up mirror changes via the `storage` event; linked files are polled every few seconds when the tab is visible.
 
-Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as Tabocalypse notes). Deletes may reappear if another device still has the entity — use Export backup before major cleanups.
+Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as Tabocalypse notes). Sync slice **version 2** adds **delete tombstones** so deletes propagate across devices; v1 sync files still load (without tombstones).
 
 Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The live sync file is named `projocalypse-sync.json`.
 

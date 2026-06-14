@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import { recordTombstone, recordTombstones } from '@/db/tombstones'
 import { db } from '@/db/schema'
 import type { Priority, Project, Section, Subtask, Task } from '@/models/types'
 
@@ -34,6 +35,19 @@ export async function updateProject(id: string, updates: Partial<Pick<Project, '
   await db.projects.update(id, { ...updates, updatedAt: Date.now() })
 }
 
+export async function unarchiveProject(id: string): Promise<void> {
+  await updateProject(id, { archived: false })
+}
+
+export async function reorderProjects(updates: { id: string; sortOrder: number }[]): Promise<void> {
+  const now = Date.now()
+  await db.transaction('rw', db.projects, async () => {
+    for (const update of updates) {
+      await db.projects.update(update.id, { sortOrder: update.sortOrder, updatedAt: now })
+    }
+  })
+}
+
 export async function createSection(projectId: string, name: string): Promise<Section> {
   const now = Date.now()
   const count = await db.sections.where('projectId').equals(projectId).count()
@@ -46,11 +60,32 @@ export async function updateSection(id: string, name: string): Promise<void> {
   await db.sections.update(id, { name, updatedAt: Date.now() })
 }
 
+export async function reorderSections(updates: { id: string; sortOrder: number }[]): Promise<void> {
+  const now = Date.now()
+  await db.transaction('rw', db.sections, async () => {
+    for (const update of updates) {
+      await db.sections.update(update.id, { sortOrder: update.sortOrder, updatedAt: now })
+    }
+  })
+}
+
 export async function deleteSection(id: string): Promise<void> {
-  await db.transaction('rw', db.sections, db.tasks, async () => {
+  const tasks = await db.tasks.where('sectionId').equals(id).toArray()
+  const subtasks = await Promise.all(tasks.map((task) => db.subtasks.where('taskId').equals(task.id).toArray()))
+  const tombstoneItems = [
+    { id, entityType: 'section' as const },
+    ...tasks.map((task) => ({ id: task.id, entityType: 'task' as const })),
+    ...subtasks.flat().map((subtask) => ({ id: subtask.id, entityType: 'subtask' as const })),
+  ]
+
+  await db.transaction('rw', db.sections, db.tasks, db.subtasks, async () => {
+    for (const task of tasks) {
+      await db.subtasks.where('taskId').equals(task.id).delete()
+    }
     await db.tasks.where('sectionId').equals(id).delete()
     await db.sections.delete(id)
   })
+  await recordTombstones(tombstoneItems)
 }
 
 export async function createTask(projectId: string, sectionId: string, title: string): Promise<Task> {
@@ -92,10 +127,15 @@ export async function toggleTaskComplete(task: Task): Promise<void> {
 }
 
 export async function deleteTask(id: string): Promise<void> {
+  const subtasks = await db.subtasks.where('taskId').equals(id).toArray()
   await db.transaction('rw', db.tasks, db.subtasks, async () => {
     await db.subtasks.where('taskId').equals(id).delete()
     await db.tasks.delete(id)
   })
+  await recordTombstones([
+    { id, entityType: 'task' },
+    ...subtasks.map((subtask) => ({ id: subtask.id, entityType: 'subtask' as const })),
+  ])
 }
 
 export async function moveTask(taskId: string, sectionId: string, sortOrder: number): Promise<void> {
@@ -105,8 +145,8 @@ export async function moveTask(taskId: string, sectionId: string, sortOrder: num
 export async function reorderTasks(updates: { id: string; sectionId: string; sortOrder: number }[]): Promise<void> {
   const now = Date.now()
   await db.transaction('rw', db.tasks, async () => {
-    for (const u of updates) {
-      await db.tasks.update(u.id, { sectionId: u.sectionId, sortOrder: u.sortOrder, updatedAt: now })
+    for (const update of updates) {
+      await db.tasks.update(update.id, { sectionId: update.sectionId, sortOrder: update.sortOrder, updatedAt: now })
     }
   })
 }
@@ -125,6 +165,7 @@ export async function updateSubtask(id: string, updates: Partial<Pick<Subtask, '
 
 export async function deleteSubtask(id: string): Promise<void> {
   await db.subtasks.delete(id)
+  await recordTombstone(id, 'subtask')
 }
 
 export async function setTaskPriority(id: string, priority: Priority): Promise<void> {
@@ -136,8 +177,17 @@ export async function archiveProject(id: string): Promise<void> {
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  const sections = await db.sections.where('projectId').equals(id).toArray()
+  const tasks = await db.tasks.where('projectId').equals(id).toArray()
+  const subtasks = await Promise.all(tasks.map((task) => db.subtasks.where('taskId').equals(task.id).toArray()))
+  const tombstoneItems = [
+    { id, entityType: 'project' as const },
+    ...sections.map((section) => ({ id: section.id, entityType: 'section' as const })),
+    ...tasks.map((task) => ({ id: task.id, entityType: 'task' as const })),
+    ...subtasks.flat().map((subtask) => ({ id: subtask.id, entityType: 'subtask' as const })),
+  ]
+
   await db.transaction('rw', db.projects, db.sections, db.tasks, db.subtasks, async () => {
-    const tasks = await db.tasks.where('projectId').equals(id).toArray()
     for (const task of tasks) {
       await db.subtasks.where('taskId').equals(task.id).delete()
     }
@@ -145,6 +195,7 @@ export async function deleteProject(id: string): Promise<void> {
     await db.sections.where('projectId').equals(id).delete()
     await db.projects.delete(id)
   })
+  await recordTombstones(tombstoneItems)
 }
 
 const GETTING_STARTED_NAME = 'Getting Started'

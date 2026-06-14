@@ -16,6 +16,7 @@ import { db } from '@/db/schema'
 import { reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
+import { AddSectionButton, BoardSectionHeader } from './section-header'
 import { TaskRow } from './task-row'
 import { QuickAddTask } from '@/components/task/quick-add-task'
 import { cn } from '@/lib/utils'
@@ -39,9 +40,7 @@ function BoardColumn({
 
   return (
     <div className="flex w-72 shrink-0 flex-col rounded-xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-sm">
-      <div className="border-b border-border/60 px-3 py-2.5 font-display text-sm font-semibold tracking-tight">
-        {section.name}
-      </div>
+      <BoardSectionHeader section={section} taskCount={tasks.length} />
       <div
         ref={setNodeRef}
         className={cn(
@@ -103,15 +102,20 @@ export function BoardView({ projectId, showCompleted }: BoardViewProps) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={cn('flex h-full gap-4 overflow-x-auto p-4')}>
-        {sections?.map((section) => (
-          <BoardColumn
-            key={section.id}
-            section={section}
-            tasks={tasksBySection.get(section.id) ?? []}
-            projectId={projectId}
-          />
-        ))}
+      <div className="flex h-full flex-col">
+        <div className={cn('flex flex-1 gap-4 overflow-x-auto p-4')}>
+          {sections?.map((section) => (
+            <BoardColumn
+              key={section.id}
+              section={section}
+              tasks={tasksBySection.get(section.id) ?? []}
+              projectId={projectId}
+            />
+          ))}
+          <div className="flex w-72 shrink-0 items-start pt-2">
+            <AddSectionButton projectId={projectId} />
+          </div>
+        </div>
       </div>
       <DragOverlay>
         {activeTask ? (

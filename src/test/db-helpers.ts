@@ -8,6 +8,7 @@ export async function clearDb(): Promise<void> {
     await db.sections.clear()
     await db.projects.clear()
   })
+  await db.tombstones.clear()
 }
 
 export function makeProject(overrides: Partial<Project> = {}): Project {

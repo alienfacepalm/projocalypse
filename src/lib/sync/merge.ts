@@ -7,17 +7,20 @@ export interface MergeableEntity {
 /**
  * Keep whichever of (baseline, incoming) has the greater updatedAt per id.
  * Ties prefer baseline so unsaved local edits win on equal timestamps.
- * Appends baseline-only ids so items created before the first sync write are not dropped.
+ * Appends baseline-only ids unless tombstoned (deletedAt >= entity updatedAt).
  */
 export function mergePreferNewerBaseline<T extends MergeableEntity>(
   baseline: readonly T[],
   incoming: readonly T[],
+  tombstones?: Map<string, number>,
 ): T[] {
   const prevById = new Map(baseline.map((item) => [item.id, item]))
   const incomingIds = new Set(incoming.map((item) => item.id))
   const out: T[] = []
 
   for (const inc of incoming) {
+    const deletedAt = tombstones?.get(inc.id)
+    if (deletedAt !== undefined && inc.updatedAt <= deletedAt) continue
     const loc = prevById.get(inc.id)
     if (!loc || loc.updatedAt < inc.updatedAt) {
       out.push(inc)
@@ -28,6 +31,8 @@ export function mergePreferNewerBaseline<T extends MergeableEntity>(
 
   for (const loc of baseline) {
     if (!incomingIds.has(loc.id)) {
+      const deletedAt = tombstones?.get(loc.id)
+      if (deletedAt !== undefined && loc.updatedAt <= deletedAt) continue
       out.push(loc)
     }
   }

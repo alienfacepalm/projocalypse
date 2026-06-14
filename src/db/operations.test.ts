@@ -10,10 +10,13 @@ import {
   deleteSubtask,
   deleteTask,
   moveTask,
+  reorderProjects,
+  reorderSections,
   reorderTasks,
   removeGettingStartedProjects,
   setTaskPriority,
   toggleTaskComplete,
+  unarchiveProject,
   updateProject,
   updateSection,
   updateSubtask,
@@ -194,6 +197,33 @@ describe('project lifecycle', () => {
     const next = await createProject('Next', '#5DA283')
     expect(next.sortOrder).toBe(1)
     expect(active.sortOrder).toBe(0)
+  })
+
+  it('unarchives a project', async () => {
+    const project = await createProject('Paused', '#4573D2')
+    await archiveProject(project.id)
+    await unarchiveProject(project.id)
+    expect((await db.projects.get(project.id))?.archived).toBe(false)
+  })
+
+  it('reorders projects and sections', async () => {
+    const project = await createProject('P', '#4573D2')
+    const sections = await db.sections.where('projectId').equals(project.id).sortBy('sortOrder')
+    await reorderSections([
+      { id: sections[2]!.id, sortOrder: 0 },
+      { id: sections[0]!.id, sortOrder: 1 },
+      { id: sections[1]!.id, sortOrder: 2 },
+    ])
+    const reordered = await db.sections.where('projectId').equals(project.id).sortBy('sortOrder')
+    expect(reordered.map((section) => section.name)).toEqual(['Done', 'To Do', 'In Progress'])
+
+    const second = await createProject('Second', '#F06A6A')
+    await reorderProjects([
+      { id: second.id, sortOrder: 0 },
+      { id: project.id, sortOrder: 1 },
+    ])
+    const projects = await db.projects.orderBy('sortOrder').toArray()
+    expect(projects.map((item) => item.name)).toEqual(['Second', 'P'])
   })
 })
 

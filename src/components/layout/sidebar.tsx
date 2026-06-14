@@ -1,13 +1,26 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useLocation } from 'react-router-dom'
-import { CheckSquare, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
+import { reorderProjects, unarchiveProject } from '@/db/operations'
+import { computeProjectReorderUpdates, projectIdFromSortableId, sortableProjectId } from '@/lib/project-drag'
 import { useBrowserSync } from '@/hooks/use-browser-sync'
 import { useTheme } from '@/hooks/use-theme'
 import { SyncSettingsItems } from '@/components/layout/sync-settings'
 import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
+import { GlobalSearch } from '@/components/layout/global-search'
+import { SortableProjectLink } from '@/components/layout/sortable-project-link'
 import { cn, downloadJson } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,10 +39,13 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
   const projects = useLiveQuery(() => db.projects.filter((p) => !p.archived).sortBy('sortOrder'), [])
+  const archivedProjects = useLiveQuery(() => db.projects.filter((p) => p.archived).sortBy('sortOrder'), [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [archivedOpen, setArchivedOpen] = useState(false)
   const syncStatus = useBrowserSync()
   const [theme, setTheme] = useTheme()
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   async function handleExport() {
     const data = await exportData()
@@ -59,6 +75,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     input.click()
   }
 
+  async function handleProjectDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || !projects) return
+    const updates = computeProjectReorderUpdates(
+      projects,
+      projectIdFromSortableId(String(active.id)),
+      projectIdFromSortableId(String(over.id)),
+    )
+    if (updates) await reorderProjects(updates)
+  }
+
+  const projectSortableIds = (projects ?? []).map((project) => sortableProjectId(project.id))
+
   const content = (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-4">
@@ -71,7 +100,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </Button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
+      <GlobalSearch />
+
+      <nav className="flex-1 overflow-y-auto px-2 py-1">
         <Link
           to="/my-tasks"
           onClick={onClose}
@@ -88,25 +119,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           Projects
         </div>
 
-        <div className="mt-1.5 space-y-0.5">
-          {projects?.map((project) => (
-            <Link
-              key={project.id}
-              to={`/project/${project.id}`}
-              onClick={onClose}
-              className={cn(
-                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent',
-                location.pathname === `/project/${project.id}` && 'bg-accent font-medium text-accent-foreground',
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+          <SortableContext items={projectSortableIds} strategy={verticalListSortingStrategy}>
+            <div className="mt-1.5 space-y-0.5">
+              {projects?.map((project) => (
+                <SortableProjectLink key={project.id} project={project} onNavigate={onClose} />
+              ))}
+              {projects?.length === 0 && (
+                <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
               )}
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-border/60" style={{ backgroundColor: project.color }} />
-              <span className="truncate">{project.name}</span>
-            </Link>
-          ))}
-          {projects?.length === 0 && (
-            <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
-          )}
-        </div>
+            </div>
+          </SortableContext>
+        </DndContext>
 
         <button
           type="button"
@@ -116,6 +140,44 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <Plus className="h-4 w-4" />
           New Project
         </button>
+
+        {(archivedProjects?.length ?? 0) > 0 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+              onClick={() => setArchivedOpen((value) => !value)}
+            >
+              {archivedOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              Archived ({archivedProjects?.length})
+            </button>
+            {archivedOpen && (
+              <div className="mt-1 space-y-0.5">
+                {archivedProjects?.map((project) => (
+                  <div
+                    key={project.id}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent"
+                  >
+                    <span
+                      className="ml-1 h-2 w-2 shrink-0 rounded-full opacity-60"
+                      style={{ backgroundColor: project.color }}
+                    />
+                    <span className="flex-1 truncate px-1">{project.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      title="Restore project"
+                      onClick={() => unarchiveProject(project.id)}
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-border/60 p-2">

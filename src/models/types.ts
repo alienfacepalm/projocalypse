@@ -1,5 +1,14 @@
 export type Priority = 'none' | 'low' | 'medium' | 'high'
 
+export type TombstoneEntityType = 'project' | 'section' | 'task' | 'subtask'
+
+/** Records a delete for cross-device sync (deletedAt wins over stale entities). */
+export interface Tombstone {
+  id: string
+  entityType: TombstoneEntityType
+  deletedAt: number
+}
+
 export interface Project {
   id: string
   name: string
@@ -44,12 +53,14 @@ export interface Subtask {
 
 /** Payload synced across browsers (Tabocalypse-style sync slice). */
 export interface SyncSlice {
-  version: 1
+  version: 1 | 2
   syncedAt: number
   projects: Project[]
   sections: Section[]
   tasks: Task[]
   subtasks: Subtask[]
+  /** v2+: propagates deletes across devices */
+  tombstones?: Tombstone[]
 }
 
 export type ViewMode = 'list' | 'board'

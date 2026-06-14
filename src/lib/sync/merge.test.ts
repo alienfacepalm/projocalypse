@@ -21,6 +21,21 @@ describe('mergePreferNewerBaseline', () => {
     expect(mergePreferNewerBaseline(baseline, incoming)[0]?.title).toBe('Local')
   })
 
+  it('drops tombstoned baseline-only ids', () => {
+    const baseline = [makeTask({ id: 'local-only', title: 'Only here', updatedAt: 50 })]
+    const incoming = [makeTask({ id: 'shared', title: 'Shared', updatedAt: 50 })]
+    const tombstones = new Map([['local-only', 100]])
+    const merged = mergePreferNewerBaseline(baseline, incoming, tombstones)
+    expect(merged.map((t) => t.id)).toEqual(['shared'])
+  })
+
+  it('drops tombstoned incoming entities', () => {
+    const baseline: ReturnType<typeof makeTask>[] = []
+    const incoming = [makeTask({ id: 'deleted', title: 'Gone', updatedAt: 50 })]
+    const tombstones = new Map([['deleted', 100]])
+    expect(mergePreferNewerBaseline(baseline, incoming, tombstones)).toEqual([])
+  })
+
   it('appends baseline-only ids', () => {
     const baseline = [makeTask({ id: 'local-only', title: 'Only here', updatedAt: 50 })]
     const incoming = [makeTask({ id: 'shared', title: 'Shared', updatedAt: 50 })]

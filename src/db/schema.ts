@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Project, Section, Subtask, Task } from '@/models/types'
+import type { Project, Section, Subtask, Task, Tombstone } from '@/models/types'
 
 export interface SyncMeta {
   id: 'sync'
@@ -12,6 +12,7 @@ export class PMDatabase extends Dexie {
   sections!: Table<Section>
   tasks!: Table<Task>
   subtasks!: Table<Subtask>
+  tombstones!: Table<Tombstone>
   syncMeta!: Table<SyncMeta>
 
   constructor() {
@@ -57,6 +58,14 @@ export class PMDatabase extends Dexie {
             }
           })
       })
+    this.version(3).stores({
+      projects: 'id, sortOrder, archived, updatedAt',
+      sections: 'id, projectId, sortOrder, updatedAt',
+      tasks: 'id, projectId, sectionId, completed, dueDate, sortOrder, updatedAt',
+      subtasks: 'id, taskId, sortOrder, updatedAt',
+      tombstones: 'id, entityType, deletedAt',
+      syncMeta: 'id',
+    })
   }
 }
 
