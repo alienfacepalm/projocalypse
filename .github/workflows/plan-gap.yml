@@ -1,0 +1,33 @@
+name: plan-gap
+
+on:
+  pull_request:
+    paths:
+      - '**/doc/PLAN/**'
+      - '.projocalypse/**'
+      - 'packages/plan/**'
+      - 'packages/gap/**'
+      - 'packages/cli/**'
+      - 'templates/cursor/**'
+  push:
+    branches: [main, master]
+    paths:
+      - '**/doc/PLAN/**'
+      - '.projocalypse/**'
+
+jobs:
+  gap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:cli
+      - run: pnpm pm:plan
+      # Dogfood: STATUS_MISMATCH only (no board snapshot in CI). Host monorepos:
+      # pnpm pm gap --all --fail-on MISSING_ON_BOARD,STATUS_MISMATCH
+      - run: pnpm pm:gap:ci

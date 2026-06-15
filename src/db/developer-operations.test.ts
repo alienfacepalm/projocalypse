@@ -4,6 +4,7 @@ import {
   createDeveloper,
   createProject,
   createTask,
+  deleteDeveloper,
   deleteProject,
   setTaskAssignee,
 } from '@/db/operations'
@@ -34,7 +35,7 @@ describe('project-scoped developers', () => {
     expect((await db.tasks.get(task.id))?.assigneeId).toBe(teammate.id)
   })
 
-  it('requires manageDevelopers to add teammates', async () => {
+  it('requires manageDevelopers to add teammates for regular developers', async () => {
     const { actor: master, projectId } = await seedTestProjectAndMaster('Owner')
     const limited = await createDeveloper(master, projectId, 'Limited', {
       permissions: { manageDevelopers: false, assignTasks: true, manageProjects: false },
@@ -42,6 +43,29 @@ describe('project-scoped developers', () => {
     await expect(createDeveloper(limited, projectId, 'Nope')).rejects.toBeInstanceOf(
       DeveloperPermissionError,
     )
+  })
+
+  it('allows lead developers to add regular teammates', async () => {
+    const { actor: master, projectId } = await seedTestProjectAndMaster('Owner')
+    const lead = await createDeveloper(master, projectId, 'Team Lead', { role: 'lead' })
+    const teammate = await createDeveloper(lead, projectId, 'New Hire')
+    expect(teammate.role).toBe('developer')
+    expect(await db.developers.where('projectId').equals(projectId).count()).toBe(3)
+  })
+
+  it('blocks lead developers from adding other leads or masters', async () => {
+    const { actor: master, projectId } = await seedTestProjectAndMaster('Owner')
+    const lead = await createDeveloper(master, projectId, 'Team Lead', { role: 'lead' })
+    await expect(createDeveloper(lead, projectId, 'Another Lead', { role: 'lead' })).rejects.toBeInstanceOf(
+      DeveloperPermissionError,
+    )
+  })
+
+  it('blocks lead developers from removing teammates', async () => {
+    const { actor: master, projectId } = await seedTestProjectAndMaster('Owner')
+    const lead = await createDeveloper(master, projectId, 'Team Lead', { role: 'lead' })
+    const teammate = await createDeveloper(lead, projectId, 'Teammate')
+    await expect(deleteDeveloper(lead, teammate.id)).rejects.toBeInstanceOf(DeveloperPermissionError)
   })
 
   it('deletes project developers when the project is removed', async () => {

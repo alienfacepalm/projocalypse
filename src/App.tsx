@@ -8,6 +8,7 @@ import { ActiveDeveloperProvider } from '@/context/active-developer-context'
 import { EmbedProvider } from '@/context/embed-context'
 import { TaskPanelProvider } from '@/context/task-panel-context'
 import { DeveloperBootstrapDialog } from '@/components/developer/developer-bootstrap-dialog'
+import { HostSetupWizard } from '@/components/host/host-setup-wizard'
 import { AppShell } from '@/components/layout/app-shell'
 import { ProjectView } from '@/components/project/project-view'
 import { MyTasksView } from '@/components/my-tasks/my-tasks-view'
@@ -52,6 +53,7 @@ export default function App({ embed }: { embed?: Partial<EmbedConfig> }) {
                 </Routes>
               </AppShell>
               <DeveloperBootstrapDialog />
+              <HostSetupWizard />
             </TaskPanelProvider>
           </ActiveDeveloperProvider>
         </ConfirmProvider>

@@ -1,0 +1,40 @@
+---
+description: Host monorepo integration — package-scoped Projocalypse embed, plan sync, gap analysis
+globs:
+alwaysApply: false
+---
+
+# Projocalypse host monorepo
+
+Read [doc/MONOREPO.md](../../doc/MONOREPO.md) and [doc/EMBED.md](../../doc/EMBED.md) before wiring Projocalypse into this repo.
+
+## Package name is the project key
+
+- Resolve work by **`packageName`** from `.projocalypse/workspace.json` (e.g. `@talemail/web`).
+- Host entities (books, workspaces) store **`projocalypseProjectId`** — one Dexie project per entity.
+- Never use full-DB import in embedded mode; use **`exportProjectData(hostProjectId)`**.
+
+## Plan edits
+
+- Plan items use **`pm:PM-###`** ids in markdown checklists.
+- **Master plan** lives in git (`planGlobs` in workspace.json); board is execution surface.
+- After changing plan markdown: `pnpm pm:plan` → `pnpm pm:gap` → `pnpm pm:sync` for the package.
+- Use **`projocalypse-plan-sync`** skill + rule; `/plan-sync` command.
+- Do not duplicate plan ids across files.
+
+## Embed mount
+
+```tsx
+<ProjocalypseApp embed={{ embedded: true, hostProjectId, packageName, pendingSyncUrl, ... }} />
+```
+
+Serve `.projocalypse/pending/` at `/.projocalypse/pending/` in the host static build.
+
+## Scripts
+
+Ensure root and package `package.json` include `pm:*` scripts from `projocalypse init`. Run `pnpm pm:doctor` after integration changes.
+
+## Do not
+
+- Add Jira/external PM links for in-repo sprint work.
+- Import whole Projocalypse backups over a shared origin DB without confirmation.

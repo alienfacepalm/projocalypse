@@ -4,6 +4,9 @@ import { db } from '@/db/schema'
 import { pickCanonicalSection } from '@/lib/board-lanes'
 import {
   DeveloperPermissionError,
+  canAddDeveloper,
+  canCreateDeveloperWithRole,
+  canManageDeveloperRoster,
   canRemoveDeveloper,
   countMasters,
   hasPermission,
@@ -138,6 +141,7 @@ export async function createTask(projectId: string, sectionId: string, title: st
     id: uuidv4(),
     projectId,
     sectionId,
+    planItemId: null,
     title,
     description: '',
     completed: false,
@@ -156,7 +160,7 @@ export async function createTask(projectId: string, sectionId: string, title: st
 export async function updateTask(
   id: string,
   updates: Partial<
-    Pick<Task, 'title' | 'description' | 'dueDate' | 'priority' | 'sectionId' | 'sortOrder' | 'completed' | 'completedAt' | 'assigneeId'>
+    Pick<Task, 'title' | 'description' | 'dueDate' | 'priority' | 'sectionId' | 'sortOrder' | 'completed' | 'completedAt' | 'assigneeId' | 'planItemId'>
   >,
 ): Promise<void> {
   await db.tasks.update(id, { ...updates, updatedAt: Date.now() })
@@ -309,7 +313,9 @@ export async function createDeveloper(
     permissions?: Partial<DeveloperPermissions>
   },
 ): Promise<Developer> {
-  requirePermission(actor, 'manageDevelopers')
+  if (!canAddDeveloper(actor)) {
+    throw new DeveloperPermissionError('Missing permission to add developers.')
+  }
   if (actor.projectId !== projectId) {
     throw new DeveloperPermissionError('Actor must belong to the target project.')
   }
@@ -317,6 +323,9 @@ export async function createDeveloper(
   const now = Date.now()
   const count = await db.developers.where('projectId').equals(projectId).count()
   const role = options?.role ?? 'developer'
+  if (!canCreateDeveloperWithRole(actor, role)) {
+    throw new DeveloperPermissionError('You cannot add a developer with that role.')
+  }
   const developer: Developer = {
     id: uuidv4(),
     projectId,
@@ -352,10 +361,18 @@ export async function updateDeveloper(
   const roleChanging = updates.role !== undefined && updates.role !== target.role
   const permissionsChanging = updates.permissions !== undefined
 
+  if (roleChanging && !isMaster(actor)) {
+    throw new DeveloperPermissionError('Only Master Developers can change roles.')
+  }
+
   if (roleChanging || permissionsChanging) {
-    requirePermission(actor, 'manageDevelopers')
+    if (!canManageDeveloperRoster(actor)) {
+      throw new DeveloperPermissionError('Missing permission: manageDevelopers')
+    }
   } else if (!isSelf) {
-    requirePermission(actor, 'manageDevelopers')
+    if (!canManageDeveloperRoster(actor)) {
+      throw new DeveloperPermissionError('Missing permission: manageDevelopers')
+    }
   }
 
   if (roleChanging && isMaster(target) && updates.role === 'developer') {
@@ -371,7 +388,7 @@ export async function updateDeveloper(
   }
   if (updates.role !== undefined) {
     patch.permissions = resolveRolePermissions(updates.role, updates.permissions ?? target.permissions)
-  } else if (updates.permissions !== undefined && !isMaster(target)) {
+  } else if (updates.permissions !== undefined && !isMaster(target) && target.role !== 'lead') {
     patch.permissions = resolveRolePermissions('developer', updates.permissions)
   }
   await db.developers.update(id, patch)

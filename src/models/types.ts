@@ -27,7 +27,8 @@ export interface Section {
   updatedAt: number
 }
 
-export type DeveloperRole = 'master' | 'developer'
+/** master — full roster & project control; lead — add developers; developer — day-to-day task work */
+export type DeveloperRole = 'master' | 'lead' | 'developer'
 
 export interface DeveloperPermissions {
   /** Create, edit, remove developers and change permissions. */
@@ -58,6 +59,8 @@ export interface Task {
   id: string
   projectId: string
   sectionId: string
+  /** Stable id from host plan markdown (pm:PM-001). */
+  planItemId: string | null
   title: string
   description: string
   completed: boolean

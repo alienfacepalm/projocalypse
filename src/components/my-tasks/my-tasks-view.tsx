@@ -47,35 +47,36 @@ function TaskItem({
   const assignee = task.assigneeId ? developerMap.get(task.assigneeId) : undefined
 
   return (
-    <div className="flex items-center gap-3 border-b border-border px-4 py-2 hover:bg-accent/50">
-      <TaskTooltip task={task} meta={{ projectName: project?.name }}>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Checkbox checked={false} onCheckedChange={() => toggleTaskComplete(task)} />
-          <button type="button" className="flex-1 truncate text-left text-sm" onClick={() => openTask(task.id)}>
-            {task.title}
-          </button>
-          {task.priority !== 'none' && (
-            <span className={cn('h-2 w-2 shrink-0 rounded-full', priorityColor(task.priority))} />
-          )}
-          {assignee && <DeveloperBadge developer={assignee} />}
-          {task.dueDate !== null && (
-            <span className={cn('shrink-0 text-xs', dueDateClass(task.dueDate, false))}>
-              {formatDueDate(task.dueDate)}
-            </span>
-          )}
-        </div>
-      </TaskTooltip>
-      {project && (
-        <Link
-          to={`/project/${task.projectId}`}
-          className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <FolderKanban className="h-3 w-3" />
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
-          {project.name}
-        </Link>
-      )}
-    </div>
+    <TaskTooltip
+      task={task}
+      meta={{ projectName: project?.name, assigneeName: assignee?.name }}
+    >
+      <div className="flex w-full items-center gap-3 border-b border-border px-4 py-2 hover:bg-accent/50">
+        <Checkbox checked={false} onCheckedChange={() => toggleTaskComplete(task)} />
+        <button type="button" className="min-w-0 flex-1 truncate text-left text-sm" onClick={() => openTask(task.id)}>
+          {task.title}
+        </button>
+        {task.priority !== 'none' && (
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', priorityColor(task.priority))} />
+        )}
+        {assignee && <DeveloperBadge developer={assignee} />}
+        {task.dueDate !== null && (
+          <span className={cn('shrink-0 text-xs', dueDateClass(task.dueDate, false))}>
+            {formatDueDate(task.dueDate)}
+          </span>
+        )}
+        {project && (
+          <Link
+            to={`/project/${task.projectId}`}
+            className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <FolderKanban className="h-3 w-3" />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+            {project.name}
+          </Link>
+        )}
+      </div>
+    </TaskTooltip>
   )
 }
 

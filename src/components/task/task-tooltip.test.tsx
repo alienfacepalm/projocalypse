@@ -1,12 +1,15 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { TaskTooltipContent } from '@/components/task/task-tooltip'
+import { TaskTooltip, TaskTooltipContent } from '@/components/task/task-tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import type { Task } from '@/models/types'
 
 const task: Task = {
   id: 'task-1',
   projectId: 'project-1',
   sectionId: 'section-1',
+  planItemId: null,
   title: 'Review HUD glass tooltip',
   description: 'Match Tabocalypse hover previews with blur and hard shadows.',
   completed: false,
@@ -28,11 +31,28 @@ describe('TaskTooltipContent', () => {
       />,
     )
 
-    expect(screen.getByRole('tooltip')).toBeInTheDocument()
+    expect(screen.getByText('Task preview')).toBeInTheDocument()
     expect(screen.getByText('Review HUD glass tooltip')).toBeInTheDocument()
     expect(screen.getByText(/Match Tabocalypse hover previews/)).toBeInTheDocument()
     expect(screen.getByText('Ops')).toBeInTheDocument()
     expect(screen.getByText('Backlog')).toBeInTheDocument()
     expect(screen.getByText('Medium')).toBeInTheDocument()
+  })
+})
+
+describe('TaskTooltip', () => {
+  it('opens preview content on hover', async () => {
+    const user = userEvent.setup()
+    render(
+      <TooltipProvider delayDuration={0}>
+        <TaskTooltip task={task} meta={{ projectName: 'Ops' }}>
+          <button type="button">Hover me</button>
+        </TaskTooltip>
+      </TooltipProvider>,
+    )
+
+    await user.hover(screen.getByRole('button', { name: 'Hover me' }))
+
+    expect(screen.getAllByText(/Match Tabocalypse hover previews/).length).toBeGreaterThanOrEqual(1)
   })
 })

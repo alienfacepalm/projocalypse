@@ -2,6 +2,8 @@
 
 Projocalypse is designed to run **standalone** (full sidebar, multi-project) or **embedded** inside a host application such as [Talemail](https://github.com/alienfacepalm/talemail). The host owns navigation and branding; Projocalypse owns task workflow inside a single **host project**.
 
+For **why** to embed PM in any repo and how developers stay aligned across machines (git, file bridge, browser sync, roadmap P2P), see **[EMBED-STRATEGY.md](./EMBED-STRATEGY.md)**.
+
 ## Mental model
 
 | Concept | Standalone | Embedded (e.g. Talemail) |
@@ -15,7 +17,7 @@ Projocalypse is designed to run **standalone** (full sidebar, multi-project) or 
 | **Appearance** | Global (`localStorage` `projocalypse-appearance`) | Host-global — follows host theme or user preference |
 | **View mode** | Per project (`view-mode-{projectId}`) | Per host project |
 | **Export / import** | Full DB backup from Settings | Prefer `exportProjectData(hostProjectId)` for host-scoped backup |
-| **Browser sync** | Origin-wide mirror + sync file | Same mechanism today — **Talemail team** should decide per-host vs per-origin sync |
+| **Browser sync** | Origin-wide mirror + sync file | Same mechanism today — see [EMBED-STRATEGY.md](./EMBED-STRATEGY.md) for team sync layers; host should decide per-host vs per-origin sync file |
 
 ## Mounting API
 
@@ -47,11 +49,19 @@ import App from '@/App'
 ## Data scoping rules (enforced in code)
 
 - `Developer.projectId` — required; Dexie v6 index `projectId`.
-- `bootstrapMasterDeveloper(projectId, name)` — empty roster **for that project only**.
-- `createDeveloper(actor, projectId, …)` — actor must belong to `projectId`.
+- `bootstrapMasterDeveloper(projectId, name)` — empty roster **for that project only**; first person becomes **Master Developer**.
+- `createDeveloper(actor, projectId, …)` — **Master** or **Lead** actors may add teammates; leads can only add **Developer** role.
 - `setTaskAssignee` — assignee `projectId` must match task `projectId`.
 - `deleteProject` — cascades developers for that project.
 - Active session — `projocalypse-active-developer:{projectId}` in `localStorage`.
+
+### Developer roles (per project)
+
+| Role | Add teammates | Remove / edit roster | Create/delete projects | Assign tasks |
+|------|---------------|----------------------|------------------------|--------------|
+| **Master** | yes (any role) | yes | yes | yes |
+| **Lead** | yes (Developer only) | no (self name only) | no | yes |
+| **Developer** | no | no (self name only) | no | yes |
 
 Legacy global developers (pre-v6) migrate to the first project by `sortOrder` on upgrade.
 
@@ -82,13 +92,14 @@ Legacy global developers (pre-v6) migrate to the first project by `sortOrder` on
 
 ## Talemail gaps (for integration team)
 
-- [ ] Host package entry: npm/workspace import of `App` + types, or iframe with `postMessage` bridge
+- [x] Host package entry: `@projocalypse/react` + `@projocalypse/cli`
+- [x] Plan parser + gap analysis + pending sync file bridge — see [MONOREPO.md](./MONOREPO.md)
 - [ ] Create/link `Project` when a Talemail book is created; store `projocalypseProjectId` on host model
-- [ ] Mount point in Talemail shell (Flutter web / React admin) with `embed` config
-- [ ] Decide sync strategy: shared `projocalypse-sync.json` per user vs per book
+- [ ] Mount point in Talemail shell with `embed` config + serve `/.projocalypse/pending/`
+- [ ] Decide sync strategy: shared `projocalypse-sync.json` per user vs per book (see [EMBED-STRATEGY.md](./EMBED-STRATEGY.md))
 - [ ] Theme: map Talemail tokens to `applyDocumentTheme` or inherit host CSS variables
 - [ ] Hide `/my-tasks` and global search in embedded routes
-- [ ] CI contract test: embed mount + bootstrap + task CRUD scoped to `hostProjectId`
+- [x] CI contract test: embed mount + bootstrap + task CRUD scoped to `hostProjectId`
 
 ## Related files
 
@@ -101,4 +112,4 @@ Legacy global developers (pre-v6) migrate to the first project by `sortOrder` on
 | Schema migration | `src/db/schema.ts` v6 |
 | Project export | `src/lib/export-import.ts` → `exportProjectData` |
 
-See also [README.md](../README.md) and `.cursor/rules/projocalypse-embed.mdc`.
+See also [EMBED-STRATEGY.md](./EMBED-STRATEGY.md), [MONOREPO.md](./MONOREPO.md), [README.md](../README.md), and `.cursor/rules/projocalypse-embed.mdc`.

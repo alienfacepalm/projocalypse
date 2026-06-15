@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useMemo, type ReactElement } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Task } from '@/models/types'
 import { db } from '@/db/schema'
@@ -35,7 +35,7 @@ export function TaskTooltipContent({ task, meta = {} }: TaskTooltipContentProps)
   const { title, description, details } = buildTaskTooltipDetails(task, enrichedMeta)
 
   return (
-    <div className="space-y-2" role="tooltip">
+    <div className="space-y-2">
       <p className="font-display text-[10px] font-bold uppercase tracking-widest text-primary">Task preview</p>
       <p className={cn('font-sans text-sm leading-snug', task.completed && 'line-through text-muted-foreground')}>
         {title}
@@ -63,17 +63,15 @@ interface TaskTooltipProps {
 }
 
 export function TaskTooltip({ task, children, meta, disabled = false }: TaskTooltipProps) {
-  const [open, setOpen] = useState(false)
-
   if (disabled) {
     return children
   }
 
   return (
-    <Tooltip open={open} onOpenChange={setOpen}>
+    <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side="right" align="start" className="w-72">
-        {open ? <TaskTooltipContent task={task} meta={meta} /> : null}
+        <TaskTooltipContent task={task} meta={meta} />
       </TooltipContent>
     </Tooltip>
   )

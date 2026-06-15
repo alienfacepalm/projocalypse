@@ -4,19 +4,30 @@ import type { Developer, ExportData } from '@/models/types'
 export interface EmbedConfig {
   embedded: boolean
   hostProjectId: string | null
+  /** Monorepo package name (@talemail/web) for plan sync and gap analysis. */
+  packageName: string | null
+  /** Host entity id (book id, workspace id) for link storage. */
+  hostEntityId: string | null
   productName: string
   tagline: string
   hideSidebar: boolean
   hideProjectSwitcher: boolean
+  /** URL to fetch .projocalypse/pending/<pkg>.json (served by host static files). */
+  pendingSyncUrl: string | null
+  /** Called when setup wizard creates/links a project id the host should persist. */
+  onProjectLinked?: (projectId: string) => void
 }
 
 export const STANDALONE_EMBED_CONFIG: EmbedConfig = {
   embedded: false,
   hostProjectId: null,
+  packageName: null,
+  hostEntityId: null,
   productName: 'Projocalypse',
   tagline: 'Project command',
   hideSidebar: false,
   hideProjectSwitcher: false,
+  pendingSyncUrl: null,
 }
 
 export function mergeEmbedConfig(partial?: Partial<EmbedConfig>): EmbedConfig {
