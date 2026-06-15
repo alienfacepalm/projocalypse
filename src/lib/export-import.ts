@@ -1,7 +1,11 @@
 import { normalizeImportedDevelopers, sliceExportForProject } from '@/lib/embed'
 import { db } from '@/db/schema'
 import { enforceTombstones, mergeTombstoneLists } from '@/db/tombstones'
-import { DEFAULT_DEVELOPER_PERMISSIONS, MASTER_PERMISSIONS, resolveRolePermissions } from '@/lib/permissions'
+import {
+  resumeDevMirrorAutoBackup,
+  suspendDevMirrorAutoBackup,
+} from '@/lib/dev-mirror-guard'
+import { resolveRolePermissions } from '@/lib/permissions'
 import type {
   Developer,
   DeveloperPermissions,
@@ -43,7 +47,7 @@ export async function exportData(): Promise<ExportData> {
 }
 
 const PRIORITIES = new Set<Priority>(['none', 'low', 'medium', 'high'])
-const DEVELOPER_ROLES = new Set<DeveloperRole>(['master', 'developer'])
+const DEVELOPER_ROLES = new Set<DeveloperRole>(['master', 'lead', 'developer'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -121,7 +125,7 @@ function parseDeveloper(raw: unknown, index: number, fallbackProjectId?: string)
               throw new Error(`Invalid backup — developers[${index}].initials must be a string or null.`)
             })(),
     role,
-    permissions: role === 'master' ? MASTER_PERMISSIONS : permissions,
+    permissions,
     sortOrder: requireNumber(raw, 'sortOrder', `developers[${index}].sortOrder`),
     createdAt: requireNumber(raw, 'createdAt', `developers[${index}].createdAt`),
     updatedAt: requireNumber(raw, 'updatedAt', `developers[${index}].updatedAt`),
@@ -186,6 +190,10 @@ function parseTask(raw: unknown, index: number): Task {
     id: requireString(raw, 'id', `tasks[${index}].id`),
     projectId: requireString(raw, 'projectId', `tasks[${index}].projectId`),
     sectionId: requireString(raw, 'sectionId', `tasks[${index}].sectionId`),
+    planItemId:
+      raw.planItemId === null || raw.planItemId === undefined
+        ? null
+        : requireString(raw, 'planItemId', `tasks[${index}].planItemId`),
     title: requireString(raw, 'title', `tasks[${index}].title`),
     description: typeof raw.description === 'string' ? raw.description : '',
     completed: requireBoolean(raw, 'completed', `tasks[${index}].completed`),
@@ -283,23 +291,31 @@ export function validateExportData(data: unknown): ExportData {
 
 export async function importData(data: ExportData): Promise<void> {
   const validated = validateExportData(data)
-  await db.tombstones.clear()
+  suspendDevMirrorAutoBackup()
+  try {
+    await db.tombstones.clear()
 
-  await db.transaction('rw', [db.projects, db.sections, db.tasks, db.subtasks, db.developers], async () => {
-    await db.subtasks.clear()
-    await db.tasks.clear()
-    await db.sections.clear()
-    await db.projects.clear()
-    await db.developers.clear()
+    await db.transaction('rw', [db.projects, db.sections, db.tasks, db.subtasks, db.developers], async () => {
+      await db.subtasks.clear()
+      await db.tasks.clear()
+      await db.sections.clear()
+      await db.projects.clear()
+      await db.developers.clear()
 
-    await db.projects.bulkAdd(validated.projects)
-    await db.sections.bulkAdd(validated.sections)
-    await db.tasks.bulkAdd(validated.tasks)
-    await db.subtasks.bulkAdd(validated.subtasks)
-    if (validated.developers?.length) {
-      await db.developers.bulkAdd(validated.developers)
+      await db.projects.bulkAdd(validated.projects)
+      await db.sections.bulkAdd(validated.sections)
+      await db.tasks.bulkAdd(validated.tasks)
+      await db.subtasks.bulkAdd(validated.subtasks)
+      if (validated.developers?.length) {
+        await db.developers.bulkAdd(validated.developers)
+      }
+    })
+  } finally {
+    resumeDevMirrorAutoBackup()
+    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
+      void import('@/lib/dev-mirror').then((mod) => mod.scheduleDevMirrorPush())
     }
-  })
+  }
 }
 
 export async function importSyncData(data: ExportData, tombstones: Tombstone[]): Promise<void> {
@@ -318,12 +334,17 @@ export async function importSyncData(data: ExportData, tombstones: Tombstone[]):
 
 /** Normalize legacy developer records when reading from DB in tests. */
 export function normalizeDeveloperPermissions(developer: Developer): Developer {
+  const role = developer.role ?? 'developer'
   if (!developer.permissions) {
     return {
       ...developer,
-      role: developer.role ?? 'developer',
-      permissions: developer.role === 'master' ? MASTER_PERMISSIONS : DEFAULT_DEVELOPER_PERMISSIONS,
+      role,
+      permissions: resolveRolePermissions(role),
     }
   }
-  return developer
+  return {
+    ...developer,
+    role,
+    permissions: resolveRolePermissions(role, role === 'developer' ? developer.permissions : undefined),
+  }
 }

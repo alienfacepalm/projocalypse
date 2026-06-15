@@ -82,7 +82,6 @@ function TaskDetailForm({ task }: { task: Task }) {
   return (
     <>
       <SheetHeader>
-        <SheetTitle className="sr-only">Task details</SheetTitle>
         {project && (
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
@@ -270,6 +269,7 @@ export function TaskDetailPanel() {
   return (
     <Sheet open={!!selectedTaskId} onOpenChange={(open) => !open && closeTask()}>
       <SheetContent side="right" className="overflow-y-auto">
+        <SheetTitle className="sr-only">Task details</SheetTitle>
         {task && <TaskDetailForm key={task.id} task={task} />}
       </SheetContent>
     </Sheet>

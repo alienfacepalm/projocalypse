@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildTaskTooltipDetails, formatSubtaskSummary, truncateDescription } from '@/lib/task-tooltip'
 import type { Task } from '@/models/types'
 
@@ -31,6 +31,15 @@ describe('formatSubtaskSummary', () => {
 })
 
 describe('buildTaskTooltipDetails', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-14T12:00:00'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('includes status, priority, due date, and context metadata', () => {
     const result = buildTaskTooltipDetails(baseTask, {
       projectName: 'Projocalypse',

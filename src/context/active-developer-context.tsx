@@ -7,11 +7,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/schema'
 import { bootstrapMasterDeveloper } from '@/db/operations'
-import { useScopeProjectId } from '@/context/embed-context'
+import { useRouteProjectId, useScopeProjectId } from '@/context/embed-context'
 import {
   clearActiveDeveloperId,
   clearLegacyWorkspaceActiveDeveloperId,
@@ -44,7 +43,7 @@ function pickDefaultDeveloper(roster: Developer[], projectId: string): Developer
 }
 
 export function ActiveDeveloperProvider({ children }: { children: ReactNode }) {
-  const { projectId: routeProjectId } = useParams()
+  const routeProjectId = useRouteProjectId()
   const scopeProjectId = useScopeProjectId(routeProjectId)
   const [manualPick, setManualPick] = useState<{ projectId: string; id: string } | null>(null)
 
@@ -93,9 +92,13 @@ export function ActiveDeveloperProvider({ children }: { children: ReactNode }) {
     [activeId],
   )
 
-  const loading = scopeProjectId !== null && developers === undefined
   const needsBootstrap =
     scopeProjectId !== null && developers !== undefined && developers.length === 0
+  const resolvingActiveDeveloper =
+    scopeProjectId !== null && activeId !== null && activeDeveloper === undefined
+  const loading =
+    scopeProjectId !== null &&
+    (developers === undefined || resolvingActiveDeveloper)
 
   const setActiveDeveloperId = useCallback(
     (id: string) => {

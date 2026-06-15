@@ -6,10 +6,17 @@ export const MASTER_PERMISSIONS: DeveloperPermissions = {
   manageProjects: true,
 }
 
+/** Team leads: grow the roster and assign work; no project delete or full roster admin. */
+export const LEAD_PERMISSIONS: DeveloperPermissions = {
+  manageDevelopers: false,
+  assignTasks: true,
+  manageProjects: false,
+}
+
 export const DEFAULT_DEVELOPER_PERMISSIONS: DeveloperPermissions = {
   manageDevelopers: false,
   assignTasks: true,
-  manageProjects: true,
+  manageProjects: false,
 }
 
 export class DeveloperPermissionError extends Error {
@@ -23,8 +30,28 @@ export function isMaster(developer: Pick<Developer, 'role'>): boolean {
   return developer.role === 'master'
 }
 
+export function isLead(developer: Pick<Developer, 'role'>): boolean {
+  return developer.role === 'lead'
+}
+
+export function canAddDeveloper(actor: Developer): boolean {
+  return isMaster(actor) || isLead(actor)
+}
+
+/** Full roster control: edit/remove others, change roles (masters only). */
+export function canManageDeveloperRoster(actor: Developer): boolean {
+  return hasPermission(actor, 'manageDevelopers')
+}
+
+export function canCreateDeveloperWithRole(actor: Developer, role: DeveloperRole): boolean {
+  if (isMaster(actor)) return true
+  if (isLead(actor)) return role === 'developer'
+  return false
+}
+
 export function effectivePermissions(developer: Developer): DeveloperPermissions {
   if (isMaster(developer)) return MASTER_PERMISSIONS
+  if (isLead(developer)) return LEAD_PERMISSIONS
   return developer.permissions
 }
 
@@ -58,6 +85,7 @@ export function resolveRolePermissions(
   permissions?: Partial<DeveloperPermissions>,
 ): DeveloperPermissions {
   if (role === 'master') return MASTER_PERMISSIONS
+  if (role === 'lead') return LEAD_PERMISSIONS
   return {
     ...DEFAULT_DEVELOPER_PERMISSIONS,
     ...permissions,

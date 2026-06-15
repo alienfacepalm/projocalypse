@@ -24,6 +24,7 @@ alwaysApply: false
 - **Export backup** — JSON file `projocalypse-backup-YYYY-MM-DD.json`, `ExportData` version `2` (developers + assignees; v1 still imports)
 - **Developer** — team member scoped to a project (`projectId`); Master/Developer roles and permissions
 - **Embed / host project** — fixed `hostProjectId` when mounted in Talemail or similar; see `doc/EMBED.md`
+- **Embedded PM strategy** — plan-in-git vs board-in-IndexedDB, cross-developer sync layers; see `doc/EMBED-STRATEGY.md`
 
 ## When editing features or stack
 

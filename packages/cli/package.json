@@ -1,0 +1,25 @@
+{
+  "name": "@projocalypse/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "projocalypse": "./dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@projocalypse/core": "workspace:*",
+    "@projocalypse/gap": "workspace:*",
+    "@projocalypse/plan": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "typescript": "~6.0.2"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config ../../vitest.packages.config.ts packages/cli"
+  }
+}

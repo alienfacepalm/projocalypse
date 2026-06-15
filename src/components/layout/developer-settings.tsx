@@ -6,8 +6,9 @@ import { createDeveloper, deleteDeveloper, updateDeveloper } from '@/db/operatio
 import { DeveloperBadge } from '@/components/developer/developer-badge'
 import { useActiveDeveloper } from '@/context/active-developer-context'
 import { useConfirm } from '@/context/confirm-context'
-import type { Developer } from '@/models/types'
+import type { Developer, DeveloperRole } from '@/models/types'
 import { PROJECT_COLORS } from '@/models/types'
+import { canAddDeveloper, canManageDeveloperRoster } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -26,18 +27,19 @@ import { cn } from '@/lib/utils'
 function DeveloperRow({
   developer,
   actor,
-  canManage,
+  canManageRoster,
   onChanged,
 }: {
   developer: Developer
   actor: Developer
-  canManage: boolean
+  canManageRoster: boolean
   onChanged: () => void
 }) {
   const { confirm } = useConfirm()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(developer.name)
   const [color, setColor] = useState(developer.color)
+  const [role, setRole] = useState<DeveloperRole>(developer.role)
   const isSelf = actor.id === developer.id
 
   async function saveRename() {
@@ -47,8 +49,12 @@ function DeveloperRow({
       setEditing(false)
       return
     }
-    if (trimmed !== developer.name || color !== developer.color) {
-      await updateDeveloper(actor, developer.id, { name: trimmed, color })
+    if (trimmed !== developer.name || color !== developer.color || role !== developer.role) {
+      await updateDeveloper(actor, developer.id, {
+        name: trimmed,
+        color,
+        ...(role !== developer.role ? { role } : {}),
+      })
       onChanged()
     }
     setEditing(false)
@@ -66,8 +72,9 @@ function DeveloperRow({
     onChanged()
   }
 
-  const canEdit = canManage || isSelf
-  const canDelete = canManage && !isSelf
+  const canEdit = canManageRoster || isSelf
+  const canDelete = canManageRoster && !isSelf
+  const canEditRole = canManageRoster && !isSelf && developer.role !== 'master'
 
   if (editing && canEdit) {
     return (
@@ -86,7 +93,7 @@ function DeveloperRow({
           className="h-8 flex-1"
           autoFocus
         />
-        {canManage && (
+        {canManageRoster && (
           <input
             type="color"
             value={color}
@@ -94,6 +101,17 @@ function DeveloperRow({
             className="h-8 w-10 cursor-pointer border border-border bg-transparent p-0"
             aria-label="Badge color"
           />
+        )}
+        {canEditRole && (
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as DeveloperRole)}
+            className="h-8 border border-border bg-background px-2 font-mono text-[10px] uppercase"
+            aria-label="Developer role"
+          >
+            <option value="developer">Developer</option>
+            <option value="lead">Lead</option>
+          </select>
         )}
         <Button type="button" size="sm" onClick={saveRename}>
           Save
@@ -109,6 +127,9 @@ function DeveloperRow({
         <span className="block truncate font-sans text-sm">{developer.name}</span>
         {developer.role === 'master' && (
           <span className="font-mono text-[9px] uppercase tracking-widest text-accent2">Master</span>
+        )}
+        {developer.role === 'lead' && (
+          <span className="font-mono text-[9px] uppercase tracking-widest text-primary">Lead</span>
         )}
       </div>
       {canEdit && (
@@ -132,7 +153,7 @@ export function DeveloperSettingsDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { activeDeveloper, can, scopeProjectId } = useActiveDeveloper()
+  const { activeDeveloper, scopeProjectId } = useActiveDeveloper()
   const developers = useLiveQuery(
     () =>
       scopeProjectId
@@ -141,15 +162,18 @@ export function DeveloperSettingsDialog({
     [scopeProjectId],
   )
   const [newName, setNewName] = useState('')
+  const [newRole, setNewRole] = useState<DeveloperRole>('developer')
   const [, setTick] = useState(0)
-  const canManage = can('manageDevelopers')
+  const canAdd = activeDeveloper ? canAddDeveloper(activeDeveloper) : false
+  const canManageRoster = activeDeveloper ? canManageDeveloperRoster(activeDeveloper) : false
 
   async function handleAdd() {
-    if (!activeDeveloper || !scopeProjectId || !canManage) return
+    if (!activeDeveloper || !scopeProjectId || !canAdd) return
     const trimmed = newName.trim()
     if (!trimmed) return
-    await createDeveloper(activeDeveloper, scopeProjectId, trimmed)
+    await createDeveloper(activeDeveloper, scopeProjectId, trimmed, { role: newRole })
     setNewName('')
+    setNewRole('developer')
   }
 
   return (
@@ -164,7 +188,7 @@ export function DeveloperSettingsDialog({
         <p className="font-mono text-xs text-muted-foreground">
           Team members for this project. Assign tasks from the task detail panel.
         </p>
-        {canManage ? (
+        {canAdd ? (
           <div className="space-y-2">
             <Label htmlFor="developer-name" className="font-display text-[10px] uppercase tracking-widest text-accent2">
               Add developer
@@ -176,7 +200,19 @@ export function DeveloperSettingsDialog({
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                 placeholder="Name"
+                className="min-w-0 flex-1"
               />
+              {canManageRoster && (
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as DeveloperRole)}
+                  className="h-9 shrink-0 border border-border bg-background px-2 font-mono text-[10px] uppercase"
+                  aria-label="Role for new developer"
+                >
+                  <option value="developer">Developer</option>
+                  <option value="lead">Lead</option>
+                </select>
+              )}
               <Button type="button" onClick={handleAdd} disabled={!newName.trim()} className="gap-1 shrink-0">
                 <Plus className="h-4 w-4" />
                 Add
@@ -185,7 +221,7 @@ export function DeveloperSettingsDialog({
           </div>
         ) : (
           <p className="border border-border bg-muted/40 px-3 py-2 font-mono text-[10px] text-muted-foreground">
-            Only Master Developers can add or remove team members. You can still edit your own name.
+            Only Master and Lead Developers can add team members. You can still edit your own name.
           </p>
         )}
         <div className="hud-scrollbar max-h-64 space-y-1 overflow-y-auto">
@@ -203,13 +239,13 @@ export function DeveloperSettingsDialog({
                 key={developer.id}
                 developer={developer}
                 actor={activeDeveloper}
-                canManage={canManage}
+                canManageRoster={canManageRoster}
                 onChanged={() => setTick((n) => n + 1)}
               />
             ))
           )}
         </div>
-        {(developers?.length ?? 0) > 0 && canManage && (
+        {(developers?.length ?? 0) > 0 && canManageRoster && (
           <p className={cn('font-mono text-[10px] text-muted-foreground')}>
             <Crown className="mr-1 inline h-3 w-3 text-primary" />
             Colors cycle from the project palette ({PROJECT_COLORS.length} presets).

@@ -260,11 +260,12 @@ Tooltips and the task detail panel show the full name; rows stay compact with in
 
 There is **no server authentication** — the active developer is stored in `localStorage` (`projocalypse-active-developer-id`) and honored for permission checks in Dexie operations. Anyone with access to the browser profile can switch identity in **Settings → Active developer**.
 
-| Permission | Master (default) | Developer (default) | Gated actions |
-|------------|------------------|---------------------|---------------|
-| `manageDevelopers` | yes | no | Add/edit/remove developers; edit permission flags |
-| `assignTasks` | yes | yes | Task detail assignee picker; `setTaskAssignee` |
-| `manageProjects` | yes | yes | Create project (sidebar); delete project (header menu) |
+| Permission | Master | Lead | Developer (default) | Gated actions |
+|------------|--------|------|---------------------|---------------|
+| `manageDevelopers` | yes | no | no | Remove developers; edit others; change roles |
+| Add developers | yes (any role) | yes (Developer only) | no | Settings → Developers → Add |
+| `assignTasks` | yes | yes | yes | Task detail assignee picker; `setTaskAssignee` |
+| `manageProjects` | yes | no | no | Create project (sidebar); delete project (header menu) |
 
 Master always receives all permissions via `effectivePermissions()`. At least one Master must remain; delete/demote of the last Master is blocked. First run with an empty `developers` table shows the bootstrap dialog (default name **You**).
 

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "packages": {
+    "projocalypse": {
+      "planGlobs": ["doc/PLAN/**/*.md", "doc/PLAN/*.md"],
+      "defaultSection": "Backlog",
+      "doneSection": "Done",
+      "sections": ["Backlog", "Sprint", "In Review", "Done"]
+    }
+  }
+}

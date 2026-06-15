@@ -1,6 +1,6 @@
 import { db } from '@/db/schema'
 import { createProject, bootstrapMasterDeveloper } from '@/db/operations'
-import { MASTER_PERMISSIONS } from '@/lib/permissions'
+import { LEAD_PERMISSIONS, MASTER_PERMISSIONS } from '@/lib/permissions'
 import type { Developer, ExportData, Project, Section, Subtask, Task } from '@/models/types'
 
 export async function clearDb(): Promise<void> {
@@ -41,6 +41,7 @@ export function makeTask(overrides: Partial<Task> = {}): Task {
     id: 'task-1',
     projectId: 'project-1',
     sectionId: 'section-1',
+    planItemId: null,
     title: 'Test task',
     description: '',
     completed: false,
@@ -81,11 +82,13 @@ export function makeDeveloper(overrides: Partial<Developer> = {}): Developer {
     permissions:
       role === 'master'
         ? MASTER_PERMISSIONS
-        : {
-            manageDevelopers: false,
-            assignTasks: true,
-            manageProjects: true,
-          },
+        : role === 'lead'
+          ? LEAD_PERMISSIONS
+          : {
+              manageDevelopers: false,
+              assignTasks: true,
+              manageProjects: false,
+            },
     sortOrder: 0,
     createdAt: now,
     updatedAt: now,
@@ -95,6 +98,10 @@ export function makeDeveloper(overrides: Partial<Developer> = {}): Developer {
 
 export function makeMasterDeveloper(overrides: Partial<Developer> = {}): Developer {
   return makeDeveloper({ role: 'master', ...overrides })
+}
+
+export function makeLeadDeveloper(overrides: Partial<Developer> = {}): Developer {
+  return makeDeveloper({ role: 'lead', ...overrides })
 }
 
 export async function seedTestProjectAndMaster(

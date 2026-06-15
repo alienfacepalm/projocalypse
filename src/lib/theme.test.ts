@@ -42,6 +42,16 @@ describe('theme palettes', () => {
     expect(vars['--color-ring']).toBe('#6366f1')
     expect(vars['--color-accent2']).toBe('#6366f1')
   })
+
+  it('uses white and zinc neutrals for light mode', () => {
+    const vars = resolveThemeCssVars(DEFAULT_APPEARANCE)
+    expect(vars['--color-background']).toBe('#fafafa')
+    expect(vars['--color-card']).toBe('#ffffff')
+    expect(vars['--color-sidebar']).toBe('#f5f5f5')
+    expect(vars['--color-foreground']).toBe('#18181b')
+    expect(vars['--color-accent-foreground']).toBe('#18181b')
+    expect(vars['--color-primary']).toBe('#39ff14')
+  })
 })
 
 describe('appearance persistence', () => {
@@ -77,6 +87,15 @@ describe('appearance persistence', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(document.documentElement.dataset.palette).toBe('plasma')
     expect(document.documentElement.style.getPropertyValue('--color-primary')).toBe('#c084fc')
+  })
+
+  it('applies light mode without dark class and sets light neutrals', () => {
+    applyDocumentTheme({ ...DEFAULT_APPEARANCE, mode: 'dark' })
+    applyDocumentTheme(DEFAULT_APPEARANCE)
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.style.getPropertyValue('--color-background')).toBe('#fafafa')
+    expect(document.documentElement.style.getPropertyValue('--color-card')).toBe('#ffffff')
   })
 
   it('normalizes invalid stored values', () => {

@@ -147,6 +147,23 @@ export class PMDatabase extends Dexie {
           }
         })
       })
+    this.version(7)
+      .stores({
+        projects: 'id, sortOrder, archived, updatedAt',
+        sections: 'id, projectId, sortOrder, updatedAt',
+        tasks: 'id, projectId, sectionId, planItemId, completed, dueDate, assigneeId, sortOrder, updatedAt',
+        subtasks: 'id, taskId, sortOrder, updatedAt',
+        developers: 'id, projectId, role, sortOrder, updatedAt',
+        tombstones: 'id, entityType, deletedAt',
+        syncMeta: 'id',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('tasks').toCollection().modify((task: Task) => {
+          if (task.planItemId === undefined) {
+            task.planItemId = null
+          }
+        })
+      })
   }
 }
 

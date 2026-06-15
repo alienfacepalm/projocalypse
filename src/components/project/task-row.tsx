@@ -63,17 +63,18 @@ export function TaskRow({
           <GripVertical className="h-4 w-4" />
         </button>
       )}
+      <Checkbox
+        checked={task.completed}
+        onCheckedChange={() => toggleTaskComplete(task)}
+        onPointerDown={(event) => event.stopPropagation()}
+        className="shrink-0"
+      />
       <TaskTooltip
         task={task}
         disabled={isDragging || !showTooltip}
         meta={{ sectionName, projectName, assigneeName: assignee?.name }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Checkbox
-            checked={task.completed}
-            onCheckedChange={() => toggleTaskComplete(task)}
-            className="shrink-0"
-          />
           <button
             type="button"
             className={cn('flex-1 truncate text-left font-sans text-sm', task.completed && 'line-through text-muted-foreground')}

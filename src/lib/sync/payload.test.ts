@@ -67,6 +67,22 @@ describe('mergeSyncSlices', () => {
     expect(merged?.tasks.find((task) => task.id === 't1')).toBeUndefined()
     expect(merged?.tombstones?.some((t) => t.id === 't1')).toBe(true)
   })
+
+  it('restores cloud entities when mirror has stale delete tombstones only', () => {
+    const cloud = exportToSyncSlice(
+      makeExportData({
+        projects: [makeProject({ id: 'p1', name: 'From file', updatedAt: 100 })],
+        exportedAt: 200,
+      }),
+    )
+    const mirror = exportToSyncSlice(
+      makeExportData({ projects: [], exportedAt: 500 }),
+      [{ id: 'p1', entityType: 'project', deletedAt: 500 }],
+    )
+    const merged = mergeSyncSlices({ cloud, mirror })
+    expect(merged?.projects.find((project) => project.id === 'p1')?.name).toBe('From file')
+    expect(merged?.tombstones?.some((tombstone) => tombstone.id === 'p1')).toBe(false)
+  })
 })
 
 describe('mergeSyncWithBaseline', () => {
