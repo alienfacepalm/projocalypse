@@ -197,6 +197,7 @@ export async function pushLocalSync(): Promise<void> {
   if (applyingRemote) return
 
   const slice = await buildSyncSliceFromDb()
+  lastAppliedFingerprint = fingerprintSyncSlice(slice)
   const mirrorWritten = writeMirrorSlice(slice)
   const cloudStorageWritten = writeCloudSliceToLocalStorage(slice)
 
@@ -244,6 +245,15 @@ export function schedulePushLocalSync(): void {
     pushTimer = null
     void pushLocalSync()
   }, PUSH_DEBOUNCE_MS)
+}
+
+/** Push sync mirror/cloud immediately after bulk import so a reload does not restore stale data. */
+export async function flushLocalSyncAfterMutation(): Promise<void> {
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
+  await pushLocalSync()
 }
 
 function isSyncStorageEvent(event: StorageEvent): boolean {

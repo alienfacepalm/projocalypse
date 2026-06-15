@@ -10,14 +10,15 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **List view** — sections as collapsible groups with inline quick-add
 - **Board view** — Kanban columns mapped to sections
 - **My Tasks** — incomplete tasks across active projects; smart lists (Today, Upcoming, Overdue) and filters
-- **Drag and drop** — reorder tasks and move between sections (including empty columns)
-- **Export / import** — validated JSON backup from Settings in the sidebar
+- **Project filters** — status chips with counts, priority filter, sort (board order, status, priority, title, recently updated), and show completed toggle on project views
+- **Export / import** — validated JSON backup from Settings in the sidebar; bundled **Talemail MVP** sprint board import (see [imports/README.md](./imports/README.md))
 - **Dark mode** — toggle in Settings; preference saved in `localStorage`
 - **Browser sync** — no-server sync across tabs (localStorage mirror) and across devices via a linked sync file in iCloud/Dropbox/Google Drive (File System Access API); conflicts resolved by per-item `updatedAt` (newer wins, ties prefer local)
 - **Project archive & delete** — from the project header menu; restore archived projects from the sidebar
 - **Global search** — find tasks and projects from the sidebar
 - **My Tasks smart lists** — All, Today, Upcoming, Overdue with project and priority filters
-- **Reorder** — drag projects in the sidebar; drag sections in list view
+- **Reorder** — drag projects in the sidebar; drag sections in list and board views
+- **Kanban workflow** — default column names map to status; completing a task or moving it to Done/Shipped marks it complete; moving out of a done column reopens it
 - **Section picker** — change a task's section from the task detail panel
 - **Board section management** — rename, delete, and add sections on the board
 
@@ -76,6 +77,10 @@ Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as
 
 Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The live sync file is named `projocalypse-sync.json`.
 
+## Environment (optional — board chat)
+
+For the upcoming Gemini-powered board assistant (slash commands like `/add-task`), copy [`.env.example`](./.env.example) to `.env` and set `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey). Optional `GEMINI_MODEL` defaults to `gemini-2.5-flash` (same as Talemail). Restart `pnpm dev` after changing env vars. **Never commit `.env`** — it is gitignored.
+
 ## Tech stack
 
 - React 19 + Vite + TypeScript
@@ -88,6 +93,6 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The l
 
 - Press **Enter** in quick-add fields to create tasks
 - Click a task title to open the detail panel
-- Toggle **Show completed** in the project header to reveal finished tasks
+- Toggle **Show completed** in the project toolbar to reveal finished tasks
 - List/Board preference is saved per project in `localStorage`
 - Light/Dark theme preference is saved in `localStorage` (Settings → Dark mode / Light mode)

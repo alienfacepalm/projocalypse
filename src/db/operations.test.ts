@@ -10,6 +10,7 @@ import {
   deleteSubtask,
   deleteTask,
   moveTask,
+  moveTaskToSection,
   reorderProjects,
   reorderSections,
   reorderTasks,
@@ -67,17 +68,51 @@ describe('tasks and subtasks', () => {
 
   it('toggles completion and sets completedAt', async () => {
     const project = await createProject('P', '#4573D2')
-    const section = await db.sections.where('projectId').equals(project.id).first()
-    const task = await createTask(project.id, section!.id, 'Finish')
+    const sections = await db.sections.where('projectId').equals(project.id).sortBy('sortOrder')
+    const todoSection = sections[0]!
+    const doneSection = sections[2]!
+    const task = await createTask(project.id, todoSection.id, 'Finish')
     await toggleTaskComplete(task)
     let stored = await db.tasks.get(task.id)
     expect(stored?.completed).toBe(true)
     expect(stored?.completedAt).toBeTypeOf('number')
+    expect(stored?.sectionId).toBe(doneSection.id)
 
     await toggleTaskComplete(stored!)
     stored = await db.tasks.get(task.id)
     expect(stored?.completed).toBe(false)
     expect(stored?.completedAt).toBeNull()
+    expect(stored?.sectionId).toBe(todoSection.id)
+  })
+
+  it('marks complete when dragged to Done and reopens when moved out', async () => {
+    const project = await createProject('P', '#4573D2')
+    const sections = await db.sections.where('projectId').equals(project.id).sortBy('sortOrder')
+    const todoSection = sections[0]!
+    const doneSection = sections[2]!
+    const task = await createTask(project.id, todoSection.id, 'Ship it')
+
+    await reorderTasks([{ id: task.id, sectionId: doneSection.id, sortOrder: 0 }])
+    let stored = await db.tasks.get(task.id)
+    expect(stored?.sectionId).toBe(doneSection.id)
+    expect(stored?.completed).toBe(true)
+
+    await reorderTasks([{ id: task.id, sectionId: todoSection.id, sortOrder: 0 }])
+    stored = await db.tasks.get(task.id)
+    expect(stored?.sectionId).toBe(todoSection.id)
+    expect(stored?.completed).toBe(false)
+  })
+
+  it('syncs completion when section changes from task detail', async () => {
+    const project = await createProject('P', '#4573D2')
+    const sections = await db.sections.where('projectId').equals(project.id).sortBy('sortOrder')
+    const todoSection = sections[0]!
+    const doneSection = sections[2]!
+    const task = await createTask(project.id, todoSection.id, 'Via picker')
+    await moveTaskToSection(task.id, doneSection.id)
+    const stored = await db.tasks.get(task.id)
+    expect(stored?.sectionId).toBe(doneSection.id)
+    expect(stored?.completed).toBe(true)
   })
 
   it('creates, updates, and deletes subtasks', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { exportData, importData, importSyncData, parseImportJson, validateExportData } from '@/lib/export-import'
+import { exportData, importData, importProjectsFromBundle, importSyncData, parseImportJson, validateExportData } from '@/lib/export-import'
 import { clearDb, makeExportData, makeProject, makeSection, makeSubtask, makeTask } from '@/test/db-helpers'
 import { db } from '@/db/schema'
 
@@ -79,6 +79,47 @@ describe('exportData and importData', () => {
     const projects = await db.projects.toArray()
     expect(projects).toHaveLength(1)
     expect(projects[0].name).toBe('New')
+  })
+})
+
+describe('importProjectsFromBundle', () => {
+  it('merges a project without deleting unrelated projects', async () => {
+    await clearDb()
+    await db.projects.add(makeProject({ id: 'other', name: 'Other project' }))
+
+    const bundle = makeExportData({
+      projects: [makeProject({ id: 'talemail-mvp', name: 'Talemail MVP' })],
+      sections: [makeSection({ id: 'sec-1', projectId: 'talemail-mvp', name: 'Sprint 0' })],
+      tasks: [makeTask({ id: 'task-1', projectId: 'talemail-mvp', sectionId: 'sec-1', title: 'S0-01' })],
+      subtasks: [],
+    })
+
+    await importProjectsFromBundle(bundle, ['talemail-mvp'])
+
+    const projects = await db.projects.toArray()
+    expect(projects).toHaveLength(2)
+    expect(projects.map((p) => p.name).sort()).toEqual(['Other project', 'Talemail MVP'])
+    expect(await db.tasks.count()).toBe(1)
+  })
+
+  it('replaces an existing project with the same id', async () => {
+    await clearDb()
+    await db.projects.add(makeProject({ id: 'talemail-mvp', name: 'Stale' }))
+    await db.sections.add(makeSection({ id: 'old-sec', projectId: 'talemail-mvp' }))
+    await db.tasks.add(makeTask({ id: 'old-task', projectId: 'talemail-mvp', sectionId: 'old-sec', title: 'Old task' }))
+
+    const bundle = makeExportData({
+      projects: [makeProject({ id: 'talemail-mvp', name: 'Talemail MVP' })],
+      sections: [makeSection({ id: 'sec-new', projectId: 'talemail-mvp', name: 'Sprint 1' })],
+      tasks: [makeTask({ id: 'task-new', projectId: 'talemail-mvp', sectionId: 'sec-new', title: 'S1-01' })],
+      subtasks: [],
+    })
+
+    await importProjectsFromBundle(bundle, ['talemail-mvp'])
+
+    expect(await db.projects.count()).toBe(1)
+    expect((await db.projects.get('talemail-mvp'))?.name).toBe('Talemail MVP')
+    expect(await db.tasks.toArray()).toEqual([expect.objectContaining({ title: 'S1-01' })])
   })
 })
 

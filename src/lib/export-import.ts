@@ -184,6 +184,38 @@ export async function importData(data: ExportData): Promise<void> {
   })
 }
 
+/** Replace only the given projects (and their sections/tasks/subtasks); keep other projects intact. */
+export async function importProjectsFromBundle(data: ExportData, projectIds: string[]): Promise<void> {
+  validateExportData(data)
+  const idSet = new Set(projectIds)
+  const bundleProjects = data.projects.filter((p) => idSet.has(p.id))
+  if (bundleProjects.length === 0) {
+    throw new Error('Import bundle has no matching projects.')
+  }
+
+  const bundleProjectIds = new Set(bundleProjects.map((p) => p.id))
+  const bundleSections = data.sections.filter((s) => bundleProjectIds.has(s.projectId))
+  const bundleTasks = data.tasks.filter((t) => bundleProjectIds.has(t.projectId))
+  const taskIds = new Set(bundleTasks.map((t) => t.id))
+  const bundleSubtasks = data.subtasks.filter((s) => taskIds.has(s.taskId))
+
+  await db.transaction('rw', db.projects, db.sections, db.tasks, db.subtasks, async () => {
+    const existingTasks = await db.tasks.where('projectId').anyOf([...bundleProjectIds]).toArray()
+    const existingTaskIds = existingTasks.map((t) => t.id)
+    if (existingTaskIds.length > 0) {
+      await db.subtasks.where('taskId').anyOf(existingTaskIds).delete()
+    }
+    await db.tasks.where('projectId').anyOf([...bundleProjectIds]).delete()
+    await db.sections.where('projectId').anyOf([...bundleProjectIds]).delete()
+    await db.projects.bulkDelete([...bundleProjectIds])
+
+    await db.projects.bulkAdd(bundleProjects)
+    if (bundleSections.length > 0) await db.sections.bulkAdd(bundleSections)
+    if (bundleTasks.length > 0) await db.tasks.bulkAdd(bundleTasks)
+    if (bundleSubtasks.length > 0) await db.subtasks.bulkAdd(bundleSubtasks)
+  })
+}
+
 export async function importSyncData(data: ExportData, tombstones: Tombstone[]): Promise<void> {
   validateExportData(data)
   const uniqueTombstones = mergeTombstoneLists(tombstones, [])

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 .pnpm-store
+.env
 dist
 coverage
 dist-ssr

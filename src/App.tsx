@@ -5,6 +5,7 @@ import { removeGettingStartedProjects } from '@/db/operations'
 import { db } from '@/db/schema'
 import { TaskPanelProvider } from '@/context/task-panel-context'
 import { AppShell } from '@/components/layout/app-shell'
+import { TalemailImportPrompt } from '@/components/layout/talemail-import-prompt'
 import { ProjectView } from '@/components/project/project-view'
 import { MyTasksView } from '@/components/my-tasks/my-tasks-view'
 
@@ -35,6 +36,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <TaskPanelProvider>
+        <TalemailImportPrompt />
         <AppShell>
           <Routes>
             <Route path="/" element={<HomeRedirect />} />

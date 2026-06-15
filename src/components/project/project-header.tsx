@@ -21,16 +21,12 @@ interface ProjectHeaderProps {
   project: Project
   viewMode: ViewMode
   onViewModeChange: (mode: ViewMode) => void
-  showCompleted: boolean
-  onShowCompletedChange: (show: boolean) => void
 }
 
 export function ProjectHeader({
   project,
   viewMode,
   onViewModeChange,
-  showCompleted,
-  onShowCompletedChange,
 }: ProjectHeaderProps) {
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
@@ -132,15 +128,6 @@ export function ProjectHeader({
       </DropdownMenu>
 
       <div className="ml-auto flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={showCompleted}
-            onChange={(e) => onShowCompletedChange(e.target.checked)}
-            className="rounded border-input accent-primary"
-          />
-          Show completed
-        </label>
         <div className="flex rounded-lg border border-border/70 bg-muted/40 p-0.5">
           <Button
             variant={viewMode === 'list' ? 'secondary' : 'ghost'}

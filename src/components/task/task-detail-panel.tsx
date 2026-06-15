@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { CalendarIcon, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db } from '@/db/schema'
-import { deleteTask, setTaskPriority, toggleTaskComplete, updateTask } from '@/db/operations'
+import { deleteTask, moveTaskToSection, setTaskPriority, toggleTaskComplete, updateTask } from '@/db/operations'
 import { useTaskPanel } from '@/context/task-panel-context'
 import type { Priority, Task } from '@/models/types'
 import { cn, priorityLabel } from '@/lib/utils'
@@ -112,7 +112,7 @@ function TaskDetailForm({ task }: { task: Task }) {
                 {sections?.map((section) => (
                   <DropdownMenuItem
                     key={section.id}
-                    onClick={() => updateTask(task.id, { sectionId: section.id })}
+                    onClick={() => moveTaskToSection(task.id, section.id)}
                   >
                     {section.name}
                   </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus } from 'lucide-react'
@@ -122,7 +122,6 @@ interface SectionBlockProps {
   section: Section
   tasks: Task[]
   projectId: string
-  showCompleted: boolean
   collapsed: boolean
   onToggle: () => void
   sortable?: boolean
@@ -132,19 +131,17 @@ export function SectionBlock({
   section,
   tasks,
   projectId,
-  showCompleted,
   collapsed,
   onToggle,
   sortable = false,
 }: SectionBlockProps) {
-  const visibleTasks = showCompleted ? tasks : tasks.filter((t) => !t.completed)
-  const taskIds = visibleTasks.map((t) => t.id)
+  const taskIds = tasks.map((t) => t.id)
 
   return (
     <div className="mb-2">
       <SectionHeader
         section={section}
-        taskCount={visibleTasks.length}
+        taskCount={tasks.length}
         collapsed={collapsed}
         onToggle={onToggle}
         sortable={sortable}
@@ -152,8 +149,8 @@ export function SectionBlock({
       {!collapsed && (
         <>
           <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-            {visibleTasks.map((task) => (
-              <TaskRow key={task.id} task={task} />
+            {tasks.map((task) => (
+              <TaskRow key={task.id} task={task} sectionName={section.name} />
             ))}
           </SortableContext>
           <QuickAddTask projectId={projectId} sectionId={section.id} />
@@ -184,9 +181,11 @@ export function AddSectionButton({ projectId }: { projectId: string }) {
 interface BoardSectionHeaderProps {
   section: Section
   taskCount: number
+  sortable?: boolean
+  dragHandleProps?: ComponentProps<'button'>
 }
 
-export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderProps) {
+export function BoardSectionHeader({ section, taskCount, sortable = false, dragHandleProps }: BoardSectionHeaderProps) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(section.name)
 
@@ -202,6 +201,16 @@ export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderPro
 
   return (
     <div className="group flex items-center gap-1 border-b border-border/60 px-3 py-2.5">
+      {sortable && dragHandleProps && (
+        <button
+          type="button"
+          className="cursor-grab text-muted-foreground opacity-0 group-hover:opacity-100"
+          aria-label={`Reorder ${section.name}`}
+          {...dragHandleProps}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       {editing ? (
         <Input
           value={name}
