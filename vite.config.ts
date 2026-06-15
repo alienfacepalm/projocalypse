@@ -4,12 +4,22 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { devMirrorPlugin } from './vite-plugin-dev-mirror'
 
+/** Must match DEV_PORT in scripts/dev-port.mjs */
+const DEV_PORT = 5173
+const host = '127.0.0.1'
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), devMirrorPlugin(__dirname)],
   server: {
-    port: 5173,
+    host,
+    port: DEV_PORT,
     strictPort: true,
     open: true,
+  },
+  preview: {
+    host,
+    port: DEV_PORT,
+    strictPort: true,
   },
   resolve: {
     alias: {

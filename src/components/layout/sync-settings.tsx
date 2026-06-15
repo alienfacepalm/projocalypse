@@ -6,7 +6,7 @@ import {
   isSyncFileApiSupported,
   isSyncFileLinked,
   linkSyncFile,
-  pushLocalSync,
+  syncNow,
   unlinkSyncFile,
   type SyncStatus,
 } from '@/lib/sync/browser-sync'
@@ -93,7 +93,7 @@ export function SyncSettingsItems({ status }: SyncSettingsItemsProps) {
               Linked sync files require a Chromium-based browser with File System Access API.
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={() => run(() => pushLocalSync())}>
+          <DropdownMenuItem onClick={() => run(() => syncNow())}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Sync now
           </DropdownMenuItem>

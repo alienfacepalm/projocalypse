@@ -135,12 +135,42 @@ function applyTombstonesToSlice(slice: SyncSlice, tombstones: Tombstone[]): Sync
   }
 }
 
+function cloudEntityIds(slice: SyncSlice): Set<string> {
+  const ids = new Set<string>()
+  for (const project of slice.projects) ids.add(project.id)
+  for (const section of slice.sections) ids.add(section.id)
+  for (const task of slice.tasks) ids.add(task.id)
+  for (const subtask of slice.subtasks) ids.add(subtask.id)
+  return ids
+}
+
+/**
+ * Drop mirror-only tombstones for entities still present in cloud data.
+ * Lets a linked sync file restore projects deleted locally before the file was updated.
+ */
+function reconcileTombstonesForCloudRestore(
+  cloud: SyncSlice | undefined,
+  tombstones: Tombstone[],
+): Tombstone[] {
+  if (!cloud) return tombstones
+  const cloudTombstoneIds = new Set((cloud.tombstones ?? []).map((tombstone) => tombstone.id))
+  const aliveInCloud = cloudEntityIds(cloud)
+  return tombstones.filter((tombstone) => {
+    if (cloudTombstoneIds.has(tombstone.id)) return true
+    if (aliveInCloud.has(tombstone.id)) return false
+    return true
+  })
+}
+
 /** Merge cloud + mirror slices the way Tabocalypse merges storage.sync + local mirror. */
 export function mergeSyncSlices(sources: SyncSources): SyncSlice | undefined {
   const { cloud, mirror } = sources
   if (!cloud && !mirror) return undefined
 
-  const tombstones = mergeTombstoneLists(cloud?.tombstones ?? [], mirror?.tombstones ?? [])
+  const tombstones = reconcileTombstonesForCloudRestore(
+    cloud,
+    mergeTombstoneLists(cloud?.tombstones ?? [], mirror?.tombstones ?? []),
+  )
   const map = tombstoneMap(tombstones)
 
   const projects = filterByTombstones(mergeSyncSources(cloud?.projects, mirror?.projects), map)

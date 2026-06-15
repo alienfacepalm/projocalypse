@@ -7,11 +7,11 @@ import {
   suspendDevMirrorAutoBackup,
 } from '@/lib/dev-mirror-guard'
 import type { EmbedConfig } from '@/lib/embed'
-import { E2E_EMBED_PROJECT_ID } from '@/e2e/seed-embedded-project'
+import { E2E_EMBED_PROJECT_ID } from '@/e2e/embed-constants'
+import { DEV_MIRROR_DISK_URL, DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
 import type { Table } from 'dexie'
 
-export const DEV_MIRROR_LS_KEY = 'projocalypseDevMirror'
-export const DEV_MIRROR_DISK_URL = '/__dev/mirror'
+export { DEV_MIRROR_DISK_URL, DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
 
 let skipDevMirror = false
 let devMirrorEnabledOverride: boolean | null = null

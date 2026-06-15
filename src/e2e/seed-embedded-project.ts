@@ -1,10 +1,10 @@
 import { db } from '@/db/schema'
 import { makeMasterDeveloper, makeProject, makeSection } from '@/test/db-helpers'
-import { DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror'
+import { DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
 import { SYNC_CLOUD_KEY, SYNC_MIRROR_KEY } from '@/lib/sync/payload'
+import { E2E_EMBED_PROJECT_ID, E2E_EMBED_PROJECT_NAME } from '@/e2e/embed-constants'
 
-export const E2E_EMBED_PROJECT_ID = 'e2e-talemail-host-project'
-export const E2E_EMBED_PROJECT_NAME = 'Talemail Test Book'
+export { E2E_EMBED_PROJECT_ID, E2E_EMBED_PROJECT_NAME } from '@/e2e/embed-constants'
 
 const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
   DEV_MIRROR_LS_KEY,

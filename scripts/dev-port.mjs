@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Single dev-server port guard for Projocalypse (default 5173).
- * Override: PROJOCALYPSE_DEV_PORT=5174 node scripts/dev-port.mjs check
+ * Single dev-server port guard for Projocalypse — port 5173 only.
  */
 import net from 'node:net'
 import path from 'node:path'
@@ -9,16 +8,14 @@ import { execFileSync } from 'node:child_process'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-const DEFAULT_PORT = 5173
+const DEV_PORT = 5173
+const DEFAULT_PORT = DEV_PORT
 const DEFAULT_HOST = '127.0.0.1'
 
+export { DEV_PORT }
+
 export function resolveDevPort() {
-  const raw = process.env.PROJOCALYPSE_DEV_PORT ?? String(DEFAULT_PORT)
-  const port = Number(raw)
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`Invalid PROJOCALYPSE_DEV_PORT: ${raw}`)
-  }
-  return port
+  return DEV_PORT
 }
 
 export function devServerUrl(port = resolveDevPort(), host = DEFAULT_HOST) {
@@ -114,7 +111,7 @@ function formatConflictReport(status, actor = 'agent') {
     `- **Status:** in use by ${ownerText}`,
     `- **Action taken:** none — reported to parent`,
     '',
-    '**Parent should:** reuse the existing server, run `pnpm dev:port:free` then `pnpm dev`, or set `PROJOCALYPSE_DEV_PORT` only when the user explicitly overrides.',
+    '**Parent should:** reuse the existing server on 5173, or run `pnpm dev:port:free` then `pnpm dev`. Never start Vite on 5174+.',
   ].join('\n')
 }
 

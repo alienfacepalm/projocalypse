@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.5.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --open",
+    "dev": "node scripts/dev-port.mjs check && vite --open --host 127.0.0.1 --port 5173 --strictPort",
     "dev:port:check": "node scripts/dev-port.mjs check",
     "dev:port:status": "node scripts/dev-port.mjs status",
     "dev:port:free": "node scripts/dev-port.mjs free",
@@ -13,7 +13,7 @@
     "build": "tsc -b && vite build",
     "build:cli": "pnpm --filter @projocalypse/plan build && pnpm --filter @projocalypse/core build && pnpm --filter @projocalypse/gap build && pnpm --filter @projocalypse/cli build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort",
     "test": "vitest run && vitest run --config vitest.packages.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

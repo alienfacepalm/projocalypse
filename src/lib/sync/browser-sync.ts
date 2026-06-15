@@ -244,6 +244,13 @@ export function schedulePushLocalSync(): void {
   }, PUSH_DEBOUNCE_MS)
 }
 
+/** Pull remote changes, then push local state (bidirectional sync). */
+export async function syncNow(): Promise<void> {
+  lastAppliedFingerprint = ''
+  await pullRemoteSync()
+  await pushLocalSync()
+}
+
 function isSyncStorageEvent(event: StorageEvent): boolean {
   return event.key === SYNC_MIRROR_KEY || event.key === SYNC_CLOUD_KEY
 }
@@ -310,7 +317,8 @@ export async function linkSyncFile(): Promise<void> {
 
   const existing = await readCloudSliceFromFile()
   if (existing) {
-    await pullRemoteSync(await buildSyncSliceFromDb())
+    lastAppliedFingerprint = ''
+    await pullRemoteSync()
   } else {
     await pushLocalSync()
   }

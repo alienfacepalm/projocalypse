@@ -1,37 +1,36 @@
 ---
 name: projocalypse-dev-server
 description: >-
-  Start, reuse, or tear down the Projocalypse Vite dev server on a single port
-  (default 5173). Use when running pnpm dev, browser QA, Playwright, embed
-  harness testing, or when a port conflict blocks local work. Subagents report
-  conflicts to the parent instead of starting on 5174+.
+  Start, reuse, or tear down the Projocalypse Vite dev server on port 5173 only.
+  Use when running pnpm dev, browser QA, Playwright, embed harness testing, or
+  when a port conflict blocks local work. Subagents report conflicts to the parent
+  instead of starting on 5174+.
 ---
 
-# Projocalypse dev server (single port)
+# Projocalypse dev server (port 5173 only)
 
-Enforces **one dev server** on port **5173** unless the user explicitly overrides.
+**One port: 5173.** `pnpm dev` runs a port check then Vite with `--strictPort` — it **fails** if busy; it never walks to 5174+.
 
-Rule: **`projocalypse-dev-server.mdc`**. Config: `vite.config.ts` (`strictPort`), `playwright.config.ts`, `scripts/dev-port.mjs`.
+Rule: **`projocalypse-dev-server.mdc`**. Config: `vite.config.ts`, `package.json`, `playwright.config.ts`, `scripts/dev-port.mjs`.
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev:port:check` | Exit 0 if port free; exit 1 + conflict report if busy |
+| `pnpm dev:port:check` | Exit 0 if 5173 free; exit 1 + conflict report if busy |
 | `pnpm dev:port:status` | JSON status (`port`, `url`, `free`, `owners`) |
-| `pnpm dev:port:free` | Stop listeners on the dev port |
+| `pnpm dev:port:free` | Stop listeners on **5173** |
 | `pnpm dev:port:report` | Human-readable status or conflict block for parent |
-| `pnpm dev` | Start Vite (fails if port busy — by design) |
+| `pnpm dev` | Check port → start Vite on **5173** only |
 
-Override (user-approved only): `PROJOCALYPSE_DEV_PORT=5174 pnpm dev`
+**Always use `pnpm dev`** — not bare `vite --open`.
 
 ## Parent workflow
 
 ```
 Task Progress:
 - [ ] pnpm dev:port:check
-- [ ] Reuse existing server OR dev:port:free → pnpm dev
-- [ ] Browser / Playwright at http://127.0.0.1:5173/
+- [ ] Reuse http://127.0.0.1:5173/ OR dev:port:free → pnpm dev
 - [ ] dev:port:free when user asks to tear down test servers
 ```
 
@@ -43,30 +42,28 @@ If **`pnpm dev:port:check`** fails, **stop**. Do not run `pnpm dev`. Return to t
 ## Dev server port conflict
 
 - **Actor:** <subagent name / task description>
-- **Requested port:** 5173
+- **Port:** 5173 (only port — do not use 5174+)
 - **URL:** http://127.0.0.1:5173/
 - **Status:** in use by <process names and PIDs from dev:port:status>
 - **Action taken:** none — reported to parent
 
-**Parent should:** reuse the existing server, run `pnpm dev:port:free` then `pnpm dev`, or apply a user-approved `PROJOCALYPSE_DEV_PORT` override.
+**Parent should:** reuse the existing server, or `pnpm dev:port:free` then `pnpm dev`.
 ```
 
 Or pipe: `pnpm dev:port:report`
 
-## Reuse vs free vs override
+## Reuse vs free
 
 | Signal | Action |
 |--------|--------|
-| Same session, server already running | Reuse URL — no second `pnpm dev` |
-| Stale Vite/node on 5173 from prior agent work | `pnpm dev:port:free` → `pnpm dev` |
-| Playwright `test:e2e` | Uses `webServer` on 5173 with `reuseExistingServer` — do not start a separate dev server |
-| Non-Projocalypse app on 5173 | Report to user; do not kill blindly |
+| Server already on 5173 | Reuse URL — no second `pnpm dev` |
+| Stale Vite on 5173 | `pnpm dev:port:free` → `pnpm dev` |
+| Playwright `test:e2e` | `webServer` on 5173, `reuseExistingServer` — no extra dev server |
+| Non-Projocalypse app on 5173 | Report to user; do not kill blindly or hop ports |
 
 ## Tear down
 
-User asks to stop test servers:
-
 ```bash
 pnpm dev:port:free
-pnpm dev:port:check   # verify free
+pnpm dev:port:check
 ```
