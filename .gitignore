@@ -15,6 +15,7 @@ playwright-report
 test-results
 .projocalypse/board/
 .projocalypse/plan-cache/
+.projocalypse/dev-mirror.json
 packages/cli/dist
 dist-ssr
 .vite

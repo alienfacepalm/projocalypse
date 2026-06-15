@@ -1,6 +1,10 @@
 import { normalizeImportedDevelopers, sliceExportForProject } from '@/lib/embed'
 import { db } from '@/db/schema'
 import { enforceTombstones, mergeTombstoneLists } from '@/db/tombstones'
+import {
+  resumeDevMirrorAutoBackup,
+  suspendDevMirrorAutoBackup,
+} from '@/lib/dev-mirror-guard'
 import { resolveRolePermissions } from '@/lib/permissions'
 import type {
   Developer,
@@ -287,23 +291,31 @@ export function validateExportData(data: unknown): ExportData {
 
 export async function importData(data: ExportData): Promise<void> {
   const validated = validateExportData(data)
-  await db.tombstones.clear()
+  suspendDevMirrorAutoBackup()
+  try {
+    await db.tombstones.clear()
 
-  await db.transaction('rw', [db.projects, db.sections, db.tasks, db.subtasks, db.developers], async () => {
-    await db.subtasks.clear()
-    await db.tasks.clear()
-    await db.sections.clear()
-    await db.projects.clear()
-    await db.developers.clear()
+    await db.transaction('rw', [db.projects, db.sections, db.tasks, db.subtasks, db.developers], async () => {
+      await db.subtasks.clear()
+      await db.tasks.clear()
+      await db.sections.clear()
+      await db.projects.clear()
+      await db.developers.clear()
 
-    await db.projects.bulkAdd(validated.projects)
-    await db.sections.bulkAdd(validated.sections)
-    await db.tasks.bulkAdd(validated.tasks)
-    await db.subtasks.bulkAdd(validated.subtasks)
-    if (validated.developers?.length) {
-      await db.developers.bulkAdd(validated.developers)
+      await db.projects.bulkAdd(validated.projects)
+      await db.sections.bulkAdd(validated.sections)
+      await db.tasks.bulkAdd(validated.tasks)
+      await db.subtasks.bulkAdd(validated.subtasks)
+      if (validated.developers?.length) {
+        await db.developers.bulkAdd(validated.developers)
+      }
+    })
+  } finally {
+    resumeDevMirrorAutoBackup()
+    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
+      void import('@/lib/dev-mirror').then((mod) => mod.scheduleDevMirrorPush())
     }
-  })
+  }
 }
 
 export async function importSyncData(data: ExportData, tombstones: Tombstone[]): Promise<void> {

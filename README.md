@@ -31,6 +31,10 @@ pnpm install
 pnpm dev
 ```
 
+Dev server uses **port 5173 only** (`strictPort` — no silent hop to 5174+). Check or free the port: `pnpm dev:port:check`, `pnpm dev:port:free`.
+
+In **dev mode**, Projocalypse **automatically mirrors** IndexedDB on every create/update/delete (debounced to `localStorage` and `.projocalypse/dev-mirror.json`, gitignored). If the DB is wiped, the app restores from the newest mirror on next load.
+
 The dev server opens your default browser automatically (`server.open` in `vite.config.ts` and `vite --open` in the dev script).
 
 ## Build

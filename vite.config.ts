@@ -2,10 +2,13 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { devMirrorPlugin } from './vite-plugin-dev-mirror'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), devMirrorPlugin(__dirname)],
   server: {
+    port: 5173,
+    strictPort: true,
     open: true,
   },
   resolve: {

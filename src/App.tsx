@@ -12,6 +12,8 @@ import { HostSetupWizard } from '@/components/host/host-setup-wizard'
 import { AppShell } from '@/components/layout/app-shell'
 import { ProjectView } from '@/components/project/project-view'
 import { MyTasksView } from '@/components/my-tasks/my-tasks-view'
+import { flushDevMirrorBackup, restoreDevMirrorIfEmpty } from '@/lib/dev-mirror'
+import { initBrowserSync, startSyncListeners } from '@/lib/sync/browser-sync'
 import type { EmbedConfig } from '@/lib/embed'
 
 function HomeRedirect() {
@@ -27,8 +29,25 @@ export default function App({ embed }: { embed?: Partial<EmbedConfig> }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    removeGettingStartedProjects().then(() => setReady(true))
-  }, [])
+    let cancelled = false
+    let stopListeners: (() => void) | undefined
+    void (async () => {
+      await restoreDevMirrorIfEmpty(embed)
+      if (cancelled) return
+      await initBrowserSync()
+      if (cancelled) return
+      await removeGettingStartedProjects()
+      if (cancelled) return
+      await flushDevMirrorBackup()
+      if (cancelled) return
+      stopListeners = startSyncListeners()
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+      stopListeners?.()
+    }
+  }, [embed])
 
   if (!ready) {
     return (

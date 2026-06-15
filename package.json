@@ -6,6 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --open",
+    "dev:port:check": "node scripts/dev-port.mjs check",
+    "dev:port:status": "node scripts/dev-port.mjs status",
+    "dev:port:free": "node scripts/dev-port.mjs free",
+    "dev:port:report": "node scripts/dev-port.mjs report",
     "build": "tsc -b && vite build",
     "build:cli": "pnpm --filter @projocalypse/plan build && pnpm --filter @projocalypse/core build && pnpm --filter @projocalypse/gap build && pnpm --filter @projocalypse/cli build",
     "lint": "eslint .",

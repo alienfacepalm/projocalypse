@@ -1,0 +1,53 @@
+---
+description: Single dev-server port (5173) — no silent port hopping; subagents report conflicts
+alwaysApply: true
+---
+
+# Projocalypse dev server port
+
+**One port.** Default **`5173`** (`vite.config.ts` + Playwright). Vite uses **`strictPort: true`** — it must not auto-increment to 5174+.
+
+Related: **`projocalypse-dev-server`** skill, `scripts/dev-port.mjs`, **`projocalypse-pnpm.mdc`**.
+
+## Before starting a dev server
+
+1. Run **`pnpm dev:port:check`** (or `node scripts/dev-port.mjs check`).
+2. If **free** → start **`pnpm dev`** once (background OK).
+3. If **in use** → **do not** start another Vite instance or pick the next port.
+
+## On port conflict
+
+| Situation | Action |
+|-----------|--------|
+| Port serves Projocalypse / Vite and matches the task | **Reuse** `http://127.0.0.1:5173/` (browser, Playwright, manual QA). |
+| Orphan from your session | **`pnpm dev:port:free`**, then **`pnpm dev`**. |
+| Blocked by another app | **Stop and report** — do not override silently. |
+
+## Override (rare)
+
+Only when the **user explicitly** names a port or approves an override:
+
+```bash
+PROJOCALYPSE_DEV_PORT=5174 pnpm dev
+```
+
+Document the override in your reply. Do not stack multiple dev servers across 5173, 5174, 5175…
+
+## Multitask / subagents (Task tool)
+
+When a child agent needs the dev server:
+
+1. Run **`pnpm dev:port:check`** first.
+2. On conflict → **do not** start `pnpm dev` on another port.
+3. **Report to the parent** using **`pnpm dev:port:report`** output (or the template in **`projocalypse-dev-server`** skill).
+4. Parent decides: reuse, free, or user-approved override.
+
+## Tear down
+
+When you started servers only for testing and the user asks to clean up (or the task is done with throwaway servers): **`pnpm dev:port:free`**.
+
+## Do not
+
+- Start multiple `pnpm dev` / `vite` processes and let Vite walk ports upward.
+- Point browser automation at `localhost:5174+` without an explicit user override.
+- Hide port conflicts — always surface them to the parent or user.

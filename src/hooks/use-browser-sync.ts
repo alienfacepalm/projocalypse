@@ -33,15 +33,8 @@ export function useBrowserSync(): SyncStatus {
   const revision = useLiveQuery(getDbRevision, [])
 
   useEffect(() => {
-    let stopListeners: (() => void) | undefined
-    void initBrowserSync().then(() => {
-      stopListeners = startSyncListeners()
-    })
     const unsubscribe = subscribeSyncStatus(setStatus)
-    return () => {
-      stopListeners?.()
-      unsubscribe()
-    }
+    return unsubscribe
   }, [])
 
   useEffect(() => {
@@ -50,4 +43,17 @@ export function useBrowserSync(): SyncStatus {
   }, [revision])
 
   return status
+}
+
+/** Call once at app root so embed mode (no sidebar) still syncs and restores. */
+export function useBrowserSyncInit(onRemoteChange?: () => void): void {
+  useEffect(() => {
+    let stopListeners: (() => void) | undefined
+    void initBrowserSync().then(() => {
+      stopListeners = startSyncListeners(onRemoteChange)
+    })
+    return () => {
+      stopListeners?.()
+    }
+  }, [onRemoteChange])
 }

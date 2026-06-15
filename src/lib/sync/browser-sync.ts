@@ -14,6 +14,8 @@ import {
 } from '@/lib/sync/payload'
 import { removeGettingStartedProjects } from '@/db/operations'
 import { getAllTombstones } from '@/db/tombstones'
+import { suspendDevMirrorAutoBackup, resumeDevMirrorAutoBackup } from '@/lib/dev-mirror-guard'
+import { scheduleDevMirrorPush } from '@/lib/dev-mirror'
 import { importSyncData, exportData } from '@/lib/export-import'
 import { db } from '@/db/schema'
 import type { SyncSlice } from '@/models/types'
@@ -170,6 +172,7 @@ async function pullRemoteSyncOnce(baseline?: SyncSlice): Promise<boolean> {
   if (!baseline && fingerprint === lastAppliedFingerprint) return false
 
   applyingRemote = true
+  suspendDevMirrorAutoBackup()
   try {
     await applySyncSliceToDb(merged)
     await removeGettingStartedProjects()
@@ -183,6 +186,8 @@ async function pullRemoteSyncOnce(baseline?: SyncSlice): Promise<boolean> {
     return true
   } finally {
     applyingRemote = false
+    resumeDevMirrorAutoBackup()
+    scheduleDevMirrorPush()
   }
 }
 

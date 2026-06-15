@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { configureDevMirror } from '@/lib/dev-mirror'
 import App from '@/App'
 import { applyDocumentTheme, loadAppearance } from '@/lib/theme'
 import {
@@ -7,6 +8,8 @@ import {
   seedEmbeddedTalemailProject,
 } from '@/e2e/seed-embedded-project'
 import '@/styles/globals.css'
+
+configureDevMirror({ skip: true })
 
 applyDocumentTheme(loadAppearance())
 

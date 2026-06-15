@@ -1,8 +1,30 @@
 import { db } from '@/db/schema'
 import { makeMasterDeveloper, makeProject, makeSection } from '@/test/db-helpers'
+import { DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror'
+import { SYNC_CLOUD_KEY, SYNC_MIRROR_KEY } from '@/lib/sync/payload'
 
 export const E2E_EMBED_PROJECT_ID = 'e2e-talemail-host-project'
 export const E2E_EMBED_PROJECT_NAME = 'Talemail Test Book'
+
+const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
+  DEV_MIRROR_LS_KEY,
+  SYNC_MIRROR_KEY,
+  SYNC_CLOUD_KEY,
+  'projocalypse-appearance',
+  'theme',
+])
+
+function clearLocalStorageExceptPreserved(): void {
+  const preserved = new Map<string, string>()
+  for (const key of PRESERVED_LOCAL_STORAGE_KEYS) {
+    const value = localStorage.getItem(key)
+    if (value !== null) preserved.set(key, value)
+  }
+  localStorage.clear()
+  for (const [key, value] of preserved) {
+    localStorage.setItem(key, value)
+  }
+}
 
 /** Seeds IndexedDB for Talemail-style embed: fixed host project + master developer + sections. */
 export async function seedEmbeddedTalemailProject(): Promise<string> {
@@ -36,6 +58,6 @@ export async function seedEmbeddedTalemailProject(): Promise<string> {
     await db.developers.add(developer)
   })
 
-  localStorage.clear()
+  clearLocalStorageExceptPreserved()
   return E2E_EMBED_PROJECT_ID
 }
