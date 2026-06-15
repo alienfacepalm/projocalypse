@@ -36,18 +36,18 @@ export function GlobalSearch() {
   return (
     <div className="relative px-2 pb-2">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-primary" />
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
           placeholder="Search tasks & projects"
-          className="h-8 pl-8 text-xs"
+          className="h-8 border-primary/60 pl-8 font-mono text-xs shadow-hud-sm focus-visible:border-primary"
         />
       </div>
       {showResults && (
-        <div className="absolute left-2 right-2 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
+        <div className="hud-scrollbar absolute left-2 right-2 top-full z-50 mt-1 max-h-64 overflow-y-auto border-2 border-primary bg-popover shadow-hud">
           {results.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">No results</p>
           ) : (
@@ -60,7 +60,7 @@ export function GlobalSearch() {
                 )}
                 onMouseDown={() => handleSelect(result)}
               >
-                <span className="truncate font-medium">{result.title}</span>
+                <span className="truncate font-display text-xs font-bold uppercase tracking-wide">{result.title}</span>
                 <span className="text-xs text-muted-foreground">
                   {result.type === 'project' ? 'Project' : result.subtitle ?? 'Task'}
                 </span>

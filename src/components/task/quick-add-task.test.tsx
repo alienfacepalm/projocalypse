@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { QuickAddTask } from '@/components/task/quick-add-task'
 import { clearDb } from '@/test/db-helpers'
-import { createProject } from '@/db/operations'
+import { createProject, bootstrapMasterDeveloper } from '@/db/operations'
 import { db } from '@/db/schema'
 
 describe('QuickAddTask', () => {
@@ -12,7 +12,9 @@ describe('QuickAddTask', () => {
 
   beforeEach(async () => {
     await clearDb()
-    const project = await createProject('Test', '#4573D2')
+    const seed = await createProject('Seed', '#4573D2')
+    const actor = await bootstrapMasterDeveloper(seed.id, 'Test')
+    const project = await createProject('Test', '#4573D2', actor)
     projectId = project.id
     const section = await db.sections.where('projectId').equals(project.id).first()
     sectionId = section!.id
@@ -29,7 +31,9 @@ describe('QuickAddTask', () => {
       const tasks = await db.tasks.where('sectionId').equals(sectionId).toArray()
       expect(tasks.some((t) => t.title === 'New task')).toBe(true)
     })
-    expect(input).toHaveValue('')
+    await waitFor(() => {
+      expect(input).toHaveValue('')
+    })
   })
 
   it('ignores blank submissions', async () => {

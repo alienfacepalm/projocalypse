@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
+import { Filter, FolderKanban, ListChecks } from 'lucide-react'
 import { db } from '@/db/schema'
 import { toggleTaskComplete } from '@/db/operations'
 import { useTaskPanel } from '@/context/task-panel-context'
@@ -12,8 +13,10 @@ import {
   type SmartList,
 } from '@/lib/task-filters'
 import { cn, dueDateClass, formatDueDate, priorityColor } from '@/lib/utils'
+import { DeveloperBadge } from '@/components/developer/developer-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
+import { TaskTooltip } from '@/components/task/task-tooltip'
 
 const SMART_LISTS: { id: SmartList; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -33,32 +36,41 @@ const PRIORITY_OPTIONS: { id: Priority | 'any'; label: string }[] = [
 function TaskItem({
   task,
   projectMap,
+  developerMap,
 }: {
   task: Task
   projectMap: Map<string, { name: string; color: string }>
+  developerMap: Map<string, { name: string; color: string; initials: string | null }>
 }) {
   const { openTask } = useTaskPanel()
   const project = projectMap.get(task.projectId)
+  const assignee = task.assigneeId ? developerMap.get(task.assigneeId) : undefined
 
   return (
-    <div className="flex items-center gap-3 border-b px-4 py-2 hover:bg-muted/50">
-      <Checkbox checked={false} onCheckedChange={() => toggleTaskComplete(task)} />
-      <button type="button" className="flex-1 truncate text-left text-sm" onClick={() => openTask(task.id)}>
-        {task.title}
-      </button>
-      {task.priority !== 'none' && (
-        <span className={cn('h-2 w-2 shrink-0 rounded-full', priorityColor(task.priority))} />
-      )}
-      {task.dueDate !== null && (
-        <span className={cn('shrink-0 text-xs', dueDateClass(task.dueDate, false))}>
-          {formatDueDate(task.dueDate)}
-        </span>
-      )}
+    <div className="flex items-center gap-3 border-b border-border px-4 py-2 hover:bg-accent/50">
+      <TaskTooltip task={task} meta={{ projectName: project?.name }}>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Checkbox checked={false} onCheckedChange={() => toggleTaskComplete(task)} />
+          <button type="button" className="flex-1 truncate text-left text-sm" onClick={() => openTask(task.id)}>
+            {task.title}
+          </button>
+          {task.priority !== 'none' && (
+            <span className={cn('h-2 w-2 shrink-0 rounded-full', priorityColor(task.priority))} />
+          )}
+          {assignee && <DeveloperBadge developer={assignee} />}
+          {task.dueDate !== null && (
+            <span className={cn('shrink-0 text-xs', dueDateClass(task.dueDate, false))}>
+              {formatDueDate(task.dueDate)}
+            </span>
+          )}
+        </div>
+      </TaskTooltip>
       {project && (
         <Link
           to={`/project/${task.projectId}`}
           className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
+          <FolderKanban className="h-3 w-3" />
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
           {project.name}
         </Link>
@@ -70,10 +82,12 @@ function TaskItem({
 export function MyTasksView() {
   const tasks = useLiveQuery(() => db.tasks.toArray())
   const projects = useLiveQuery(() => db.projects.toArray())
+  const developers = useLiveQuery(() => db.developers.orderBy('sortOrder').toArray())
   const [filters, setFilters] = useState<MyTasksFilters>({
     smartList: 'all',
     projectId: null,
     priority: 'any',
+    assigneeId: null,
   })
 
   const activeProjectIds = useMemo(
@@ -94,6 +108,18 @@ export function MyTasksView() {
     [projects],
   )
 
+  const developerMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string; initials: string | null }>()
+    for (const developer of developers ?? []) {
+      map.set(developer.id, {
+        name: developer.name,
+        color: developer.color,
+        initials: developer.initials,
+      })
+    }
+    return map
+  }, [developers])
+
   const filtered = useMemo(
     () => filterMyTasks(tasks ?? [], activeProjectIds, filters),
     [tasks, activeProjectIds, filters],
@@ -103,9 +129,12 @@ export function MyTasksView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-sm">
-        <h2 className="font-display text-lg font-semibold tracking-tight">My Tasks</h2>
-        <p className="text-sm text-muted-foreground">
+      <header className="border-b-2 border-primary bg-background/90 px-4 py-3 shadow-hud-sm backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-5 w-5 text-primary" />
+          <h2 className="font-display text-base font-bold uppercase tracking-widest text-primary">My Tasks</h2>
+        </div>
+        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {filtered.length} incomplete task{filtered.length !== 1 ? 's' : ''}
         </p>
 
@@ -123,7 +152,8 @@ export function MyTasksView() {
           ))}
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Filter className="h-3.5 w-3.5 text-accent2" aria-hidden />
           <select
             value={filters.projectId ?? ''}
             onChange={(event) =>
@@ -132,7 +162,7 @@ export function MyTasksView() {
                 projectId: event.target.value || null,
               }))
             }
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            className="h-8 border border-input bg-background px-2 font-mono text-xs"
           >
             <option value="">All projects</option>
             {activeProjects.map((project) => (
@@ -149,7 +179,7 @@ export function MyTasksView() {
                 priority: event.target.value as Priority | 'any',
               }))
             }
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            className="h-8 border border-input bg-background px-2 font-mono text-xs"
           >
             {PRIORITY_OPTIONS.map((option) => (
               <option key={option.id} value={option.id}>
@@ -157,10 +187,30 @@ export function MyTasksView() {
               </option>
             ))}
           </select>
+          <select
+            value={filters.assigneeId ?? ''}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                assigneeId: event.target.value === 'unassigned'
+                  ? 'unassigned'
+                  : event.target.value || null,
+              }))
+            }
+            className="h-8 border border-input bg-background px-2 font-mono text-xs"
+          >
+            <option value="">Any assignee</option>
+            <option value="unassigned">Unassigned</option>
+            {(developers ?? []).map((developer) => (
+              <option key={developer.id} value={developer.id}>
+                {developer.name}
+              </option>
+            ))}
+          </select>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="hud-scrollbar flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
             <p>
@@ -178,27 +228,29 @@ export function MyTasksView() {
           <>
             {grouped.withDue.length > 0 && (
               <section>
-                <h3 className="bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <h3 className="border-b border-primary/40 bg-muted/50 px-4 py-2 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-accent2">
                   With due date
                 </h3>
                 {grouped.withDue.map((task) => (
-                  <TaskItem key={task.id} task={task} projectMap={projectMap} />
+                  <TaskItem key={task.id} task={task} projectMap={projectMap} developerMap={developerMap} />
                 ))}
               </section>
             )}
             {grouped.noDue.length > 0 && (
               <section>
-                <h3 className="bg-muted/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <h3 className="border-b border-primary/40 bg-muted/50 px-4 py-2 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-accent2">
                   No due date
                 </h3>
                 {grouped.noDue.map((task) => (
-                  <TaskItem key={task.id} task={task} projectMap={projectMap} />
+                  <TaskItem key={task.id} task={task} projectMap={projectMap} developerMap={developerMap} />
                 ))}
               </section>
             )}
           </>
         ) : (
-          filtered.map((task) => <TaskItem key={task.id} task={task} projectMap={projectMap} />)
+          filtered.map((task) => (
+            <TaskItem key={task.id} task={task} projectMap={projectMap} developerMap={developerMap} />
+          ))
         )}
       </div>
     </div>

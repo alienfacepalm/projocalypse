@@ -7,7 +7,7 @@ import {
 } from '@/db/tombstones'
 import { clearDb, makeTask } from '@/test/db-helpers'
 import { db } from '@/db/schema'
-import { createProject, createTask, deleteTask } from '@/db/operations'
+import { bootstrapMasterDeveloper, createProject, createTask, deleteTask } from '@/db/operations'
 
 describe('tombstones', () => {
   beforeEach(async () => {
@@ -35,7 +35,9 @@ describe('tombstones', () => {
   })
 
   it('records tombstones on task delete and enforces them', async () => {
-    const project = await createProject('P', '#4573D2')
+    const seed = await createProject('Seed', '#4573D2')
+    const actor = await bootstrapMasterDeveloper(seed.id, 'Test')
+    const project = await createProject('P', '#4573D2', actor)
     const section = await db.sections.where('projectId').equals(project.id).first()
     const task = await createTask(project.id, section!.id, 'Gone')
     await deleteTask(task.id)

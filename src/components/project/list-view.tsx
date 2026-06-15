@@ -43,7 +43,7 @@ function SectionDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={cn('transition-colors', isOver && 'rounded-md bg-primary/5 ring-2 ring-inset ring-primary/20')}
+      className={cn('transition-colors', isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30')}
     >
       {children}
     </div>
@@ -116,9 +116,9 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="overflow-y-auto pb-8">
+      <div className="hud-scrollbar overflow-y-auto pb-8">
         {firstSectionId && (
-          <div className="border-b border-border/60 bg-muted/30 px-1 py-2">
+          <div className="border-b-2 border-primary/40 bg-muted/30 px-1 py-2">
             <QuickAddTask projectId={projectId} sectionId={firstSectionId} placeholder="Add task to first section…" />
           </div>
         )}
@@ -140,9 +140,9 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
         <AddSectionButton projectId={projectId} />
       </div>
       <DragOverlay>
-        {activeTask ? <TaskRow task={activeTask} draggable={false} /> : null}
+        {activeTask ? <TaskRow task={activeTask} draggable={false} showTooltip={false} /> : null}
         {activeSection ? (
-          <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-semibold shadow-md">
+          <div className="border-2 border-primary bg-muted/40 px-3 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary shadow-hud-sm">
             {activeSection.name}
           </div>
         ) : null}

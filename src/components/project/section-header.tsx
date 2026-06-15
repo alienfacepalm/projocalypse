@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useConfirm } from '@/context/confirm-context'
 import type { Section, Task } from '@/models/types'
 import { createSection, deleteSection, updateSection } from '@/db/operations'
 import { sortableSectionId } from '@/lib/section-drag'
@@ -26,6 +27,7 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({ section, taskCount, collapsed, onToggle, sortable = false }: SectionHeaderProps) {
+  const { confirm: askConfirm } = useConfirm()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(section.name)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -52,7 +54,7 @@ export function SectionHeader({ section, taskCount, collapsed, onToggle, sortabl
   }
 
   return (
-    <div ref={sortable ? setNodeRef : undefined} style={style} className="group flex items-center gap-1 bg-muted/40 px-3 py-2">
+    <div ref={sortable ? setNodeRef : undefined} style={style} className="group flex items-center gap-1 border-b border-border bg-muted/50 px-3 py-2">
       {sortable && (
         <button
           type="button"
@@ -79,13 +81,13 @@ export function SectionHeader({ section, taskCount, collapsed, onToggle, sortabl
               setEditing(false)
             }
           }}
-          className="h-7 max-w-xs text-sm font-semibold"
+          className="h-7 max-w-xs font-display text-xs font-bold uppercase tracking-widest"
           autoFocus
         />
       ) : (
         <button
           type="button"
-          className="text-sm font-semibold hover:underline"
+          className="font-display text-xs font-bold uppercase tracking-widest text-primary hover:text-accent2"
           onClick={() => setEditing(true)}
         >
           {section.name}
@@ -100,15 +102,24 @@ export function SectionHeader({ section, taskCount, collapsed, onToggle, sortabl
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditing(true)}>Rename section</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setEditing(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename section
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
-              onClick={() => {
-                if (confirm(`Delete section "${section.name}" and all its tasks?`)) {
-                  deleteSection(section.id)
-                }
+              onClick={async () => {
+                const ok = await askConfirm({
+                  title: 'Delete section',
+                  description: `Delete section "${section.name}" and all its tasks?`,
+                  confirmLabel: 'Delete',
+                  variant: 'destructive',
+                  icon: Trash2,
+                })
+                if (ok) await deleteSection(section.id)
               }}
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete section
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -153,7 +164,7 @@ export function SectionBlock({
         <>
           <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
             {visibleTasks.map((task) => (
-              <TaskRow key={task.id} task={task} />
+              <TaskRow key={task.id} task={task} sectionName={section.name} />
             ))}
           </SortableContext>
           <QuickAddTask projectId={projectId} sectionId={section.id} />
@@ -164,16 +175,24 @@ export function SectionBlock({
 }
 
 export function AddSectionButton({ projectId }: { projectId: string }) {
+  const { prompt } = useConfirm()
+
   async function handleAdd() {
-    const name = prompt('Section name')
-    if (name?.trim()) await createSection(projectId, name.trim())
+    const name = await prompt({
+      title: 'New section',
+      label: 'Section name',
+      placeholder: 'Backlog',
+      confirmLabel: 'Add section',
+      icon: Plus,
+    })
+    if (name) await createSection(projectId, name)
   }
 
   return (
     <button
       type="button"
       onClick={handleAdd}
-      className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+      className="flex items-center gap-2 px-3 py-2 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary"
     >
       <Plus className="h-4 w-4" />
       Add section
@@ -187,6 +206,7 @@ interface BoardSectionHeaderProps {
 }
 
 export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderProps) {
+  const { confirm: askConfirm } = useConfirm()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(section.name)
 
@@ -201,7 +221,7 @@ export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderPro
   }
 
   return (
-    <div className="group flex items-center gap-1 border-b border-border/60 px-3 py-2.5">
+    <div className="group flex items-center gap-1 border-b-2 border-primary/40 px-3 py-2.5">
       {editing ? (
         <Input
           value={name}
@@ -218,7 +238,7 @@ export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderPro
           autoFocus
         />
       ) : (
-        <span className="font-display text-sm font-semibold tracking-tight">{section.name}</span>
+        <span className="font-display text-xs font-bold uppercase tracking-widest text-primary">{section.name}</span>
       )}
       <span className="text-xs text-muted-foreground">{taskCount}</span>
       <div className="ml-auto opacity-0 group-hover:opacity-100">
@@ -229,15 +249,24 @@ export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderPro
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditing(true)}>Rename section</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setEditing(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename section
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
-              onClick={() => {
-                if (confirm(`Delete section "${section.name}" and all its tasks?`)) {
-                  deleteSection(section.id)
-                }
+              onClick={async () => {
+                const ok = await askConfirm({
+                  title: 'Delete section',
+                  description: `Delete section "${section.name}" and all its tasks?`,
+                  confirmLabel: 'Delete',
+                  variant: 'destructive',
+                  icon: Trash2,
+                })
+                if (ok) await deleteSection(section.id)
               }}
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete section
             </DropdownMenuItem>
           </DropdownMenuContent>

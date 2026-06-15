@@ -1,6 +1,6 @@
+import { Folder, GripVertical } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import type { Project } from '@/models/types'
 import { cn } from '@/lib/utils'
@@ -38,10 +38,12 @@ export function SortableProjectLink({ project, onNavigate }: SortableProjectLink
         to={`/project/${project.id}`}
         onClick={onNavigate}
         className={cn(
-          'group flex flex-1 items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent',
-          location.pathname === `/project/${project.id}` && 'bg-accent font-medium text-accent-foreground',
+          'group flex flex-1 items-center gap-2 border border-transparent px-2 py-2 font-sans text-sm transition-colors hover:border-primary hover:bg-accent hover:shadow-hud-sm',
+          location.pathname === `/project/${project.id}` &&
+            'border-primary bg-accent font-medium text-accent-foreground shadow-hud-sm',
         )}
       >
+        <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span
           className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-border/60"
           style={{ backgroundColor: project.color }}
