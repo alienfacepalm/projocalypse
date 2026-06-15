@@ -10,13 +10,17 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Download, Menu, Moon, Plus, Sun, Upload, X } from 'lucide-react'
+import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Database, Download, Menu, Plus, Settings, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
 import { reorderProjects, unarchiveProject } from '@/db/operations'
 import { computeProjectReorderUpdates, projectIdFromSortableId, sortableProjectId } from '@/lib/project-drag'
 import { useBrowserSync } from '@/hooks/use-browser-sync'
-import { useTheme } from '@/hooks/use-theme'
+import { useConfirm } from '@/context/confirm-context'
+import { useEmbed } from '@/context/embed-context'
+import { AppearanceSettingsItems } from '@/components/layout/appearance-settings'
+import { ActiveDeveloperMenuItems, DeveloperSettingsMenuItem } from '@/components/layout/developer-settings'
+import { useCanManageProjects } from '@/hooks/use-can-manage-projects'
 import { SyncSettingsItems } from '@/components/layout/sync-settings'
 import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
 import { GlobalSearch } from '@/components/layout/global-search'
@@ -38,13 +42,15 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
+  const { productName, tagline, hideProjectSwitcher } = useEmbed()
   const projects = useLiveQuery(() => db.projects.filter((p) => !p.archived).sortBy('sortOrder'), [])
   const archivedProjects = useLiveQuery(() => db.projects.filter((p) => p.archived).sortBy('sortOrder'), [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [archivedOpen, setArchivedOpen] = useState(false)
   const syncStatus = useBrowserSync()
-  const [theme, setTheme] = useTheme()
+  const { confirm } = useConfirm()
+  const canManageProjects = useCanManageProjects()
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   async function handleExport() {
@@ -63,13 +69,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       try {
         const text = await file.text()
         const data = parseImportJson(text)
-        if (!confirm('Import will replace all current data. Continue?')) return
+        const ok = await confirm({
+          title: 'Import backup',
+          description: 'Import will replace all current data. Continue?',
+          confirmLabel: 'Import',
+          variant: 'destructive',
+          icon: Upload,
+        })
+        if (!ok) return
         await importData(data)
         setImportError(null)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Import failed.'
         setImportError(message)
-        alert(message)
       }
     }
     input.click()
@@ -90,10 +102,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const content = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-4">
+      <div className="flex items-center justify-between border-b-2 border-primary px-4 py-4 shadow-hud-sm">
         <div>
-          <h1 className="font-display text-lg font-semibold tracking-tight">Projocalypse</h1>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Project command</p>
+          <h1 className="font-title text-xl font-normal uppercase tracking-widest text-primary">{productName}</h1>
+          <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-accent2">{tagline}</p>
         </div>
         <Button variant="ghost" size="icon" className="md:hidden" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -102,50 +114,57 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <GlobalSearch />
 
-      <nav className="flex-1 overflow-y-auto px-2 py-1">
+      <nav className="hud-scrollbar flex-1 overflow-y-auto px-2 py-1">
         <Link
           to="/my-tasks"
           onClick={onClose}
           className={cn(
-            'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent',
-            location.pathname === '/my-tasks' && 'bg-accent font-medium text-accent-foreground',
+            'flex items-center gap-2 border border-transparent px-3 py-2 font-display text-xs font-bold uppercase tracking-widest transition-colors hover:border-primary hover:bg-accent hover:text-accent-foreground hover:shadow-hud-sm',
+            location.pathname === '/my-tasks' &&
+              'border-primary bg-accent font-bold text-accent-foreground shadow-hud-sm',
           )}
         >
           <CheckSquare className="h-4 w-4" />
           My Tasks
         </Link>
 
-        <div className="mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Projects
-        </div>
-
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
-          <SortableContext items={projectSortableIds} strategy={verticalListSortingStrategy}>
-            <div className="mt-1.5 space-y-0.5">
-              {projects?.map((project) => (
-                <SortableProjectLink key={project.id} project={project} onNavigate={onClose} />
-              ))}
-              {projects?.length === 0 && (
-                <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
-              )}
+        {!hideProjectSwitcher && (
+          <>
+            <div className="mt-5 px-3 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-accent2">
+              Projects
             </div>
-          </SortableContext>
-        </DndContext>
 
-        <button
-          type="button"
-          className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          New Project
-        </button>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+              <SortableContext items={projectSortableIds} strategy={verticalListSortingStrategy}>
+                <div className="mt-1.5 space-y-0.5">
+                  {projects?.map((project) => (
+                    <SortableProjectLink key={project.id} project={project} onNavigate={onClose} />
+                  ))}
+                  {projects?.length === 0 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">No projects yet — create one below.</p>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
 
-        {(archivedProjects?.length ?? 0) > 0 && (
+            <button
+              type="button"
+              className="mt-2 flex w-full items-center gap-2 border border-dashed border-border px-3 py-2 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:bg-accent hover:text-accent-foreground hover:shadow-hud-sm disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => setDialogOpen(true)}
+              disabled={!canManageProjects}
+              title={canManageProjects ? undefined : 'You do not have permission to create projects'}
+            >
+              <Plus className="h-4 w-4" />
+              New Project
+            </button>
+          </>
+        )}
+
+        {!hideProjectSwitcher && (archivedProjects?.length ?? 0) > 0 && (
           <div className="mt-4">
             <button
               type="button"
-              className="flex w-full items-center gap-1 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+              className="flex w-full items-center gap-1 px-3 py-1.5 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary"
               onClick={() => setArchivedOpen((value) => !value)}
             >
               {archivedOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -156,7 +175,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 {archivedProjects?.map((project) => (
                   <div
                     key={project.id}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent"
+                    className="flex items-center gap-1 border border-transparent px-2 py-1.5 text-sm text-muted-foreground hover:border-border hover:bg-accent"
                   >
                     <span
                       className="ml-1 h-2 w-2 shrink-0 rounded-full opacity-60"
@@ -180,17 +199,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         )}
       </nav>
 
-      <div className="border-t border-border/60 p-2">
+      <div className="border-t-2 border-primary p-2 shadow-[0_-2px_0_0_var(--color-primary)]">
         {importError && (
-          <p className="mb-2 rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">{importError}</p>
+          <p className="mb-2 border border-destructive/40 bg-destructive/10 px-2 py-1.5 font-mono text-xs text-destructive">{importError}</p>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start text-sm">
+              <Settings className="mr-2 h-4 w-4" />
               Settings
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
+            <AppearanceSettingsItems />
+            <DeveloperSettingsMenuItem />
+            <ActiveDeveloperMenuItems />
             <SyncSettingsItems status={syncStatus} />
             <DropdownMenuItem onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
@@ -201,21 +224,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               Import backup
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="mr-2 h-4 w-4" />
-                  Light mode
-                </>
-              ) : (
-                <>
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark mode
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+              <Database className="mr-2 h-4 w-4 shrink-0" />
               IndexedDB on this device; sync via Settings
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -227,11 +237,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       <CreateProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-      <aside className="hidden w-64 shrink-0 border-r border-border/70 bg-sidebar md:block">{content}</aside>
+      <aside className="hidden w-64 shrink-0 border-r-2 border-primary bg-sidebar shadow-hud-sm md:block">{content}</aside>
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-          <aside className="absolute left-0 top-0 h-full w-64 border-r border-border/70 bg-sidebar shadow-xl">{content}</aside>
+          <div className="absolute inset-0 bg-black/65" onClick={onClose} />
+          <aside className="absolute left-0 top-0 h-full w-64 border-r-2 border-primary bg-sidebar shadow-hud">{content}</aside>
         </div>
       )}
     </>

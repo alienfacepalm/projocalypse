@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Cloud, CloudOff, FilePlus2, FolderOpen, RefreshCw } from 'lucide-react'
+import { useConfirm } from '@/context/confirm-context'
 import {
   createAndLinkSyncFile,
   isSyncFileApiSupported,
@@ -29,6 +30,7 @@ function formatSyncedAt(ms: number | null): string {
 
 export function SyncSettingsItems({ status }: SyncSettingsItemsProps) {
   const [busy, setBusy] = useState(false)
+  const { alert } = useConfirm()
   const fileApi = isSyncFileApiSupported()
   const linked = isSyncFileLinked() || status.fileLinked
 
@@ -38,7 +40,11 @@ export function SyncSettingsItems({ status }: SyncSettingsItemsProps) {
       await action()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sync action failed.'
-      alert(message)
+      await alert({
+        title: 'Sync failed',
+        description: message,
+        variant: 'error',
+      })
     } finally {
       setBusy(false)
     }

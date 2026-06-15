@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { exportData, importData, importSyncData, parseImportJson, validateExportData } from '@/lib/export-import'
-import { clearDb, makeExportData, makeProject, makeSection, makeSubtask, makeTask } from '@/test/db-helpers'
+import { clearDb, makeDeveloper, makeExportData, makeProject, makeSection, makeSubtask, makeTask } from '@/test/db-helpers'
 import { db } from '@/db/schema'
 
 describe('validateExportData', () => {
-  it('accepts a valid v1 backup', () => {
+  it('accepts a valid v2 backup', () => {
     const data = makeExportData()
     expect(validateExportData(data)).toEqual(data)
+  })
+
+  it('accepts a valid v1 backup without developers', () => {
+    const data = makeExportData({ version: 1, developers: undefined })
+    const validated = validateExportData(data)
+    expect(validated.version).toBe(1)
+    expect(validated.developers).toBeUndefined()
   })
 
   it('rejects non-object top level', () => {
@@ -15,7 +22,7 @@ describe('validateExportData', () => {
   })
 
   it('rejects unsupported version', () => {
-    expect(() => validateExportData({ ...makeExportData(), version: 2 })).toThrow(/Unsupported backup version/)
+    expect(() => validateExportData({ ...makeExportData(), version: 3 })).toThrow(/Unsupported backup version/)
   })
 
   it('rejects missing entity arrays', () => {
@@ -36,6 +43,14 @@ describe('validateExportData', () => {
     })
     expect(() => validateExportData(data)).toThrow(/must be a non-empty string/)
   })
+
+  it('parses assigneeId on tasks', () => {
+    const data = makeExportData({
+      tasks: [makeTask({ assigneeId: 'dev-1' })],
+      developers: [makeDeveloper({ id: 'dev-1' })],
+    })
+    expect(validateExportData(data).tasks[0].assigneeId).toBe('dev-1')
+  })
 })
 
 describe('parseImportJson', () => {
@@ -50,16 +65,21 @@ describe('parseImportJson', () => {
 })
 
 describe('exportData and importData', () => {
-  it('round-trips database contents', async () => {
+  it('round-trips database contents including developers', async () => {
     await clearDb()
     const data = makeExportData()
     await db.projects.bulkAdd(data.projects)
     await db.sections.bulkAdd(data.sections)
     await db.tasks.bulkAdd(data.tasks)
     await db.subtasks.bulkAdd(data.subtasks)
+    if (data.developers?.length) {
+      await db.developers.bulkAdd(data.developers)
+    }
 
     const exported = await exportData()
+    expect(exported.version).toBe(2)
     expect(exported.projects).toHaveLength(1)
+    expect(exported.developers).toHaveLength(1)
     expect(exported.tasks[0].title).toBe('Test task')
 
     await clearDb()
@@ -67,8 +87,11 @@ describe('exportData and importData', () => {
 
     const projects = await db.projects.toArray()
     const tasks = await db.tasks.toArray()
+    const developers = await db.developers.toArray()
     expect(projects).toHaveLength(1)
     expect(tasks[0].title).toBe('Test task')
+    expect(developers).toHaveLength(1)
+    expect(developers[0].name).toBe('Alex Dev')
   })
 
   it('replaces existing data on import', async () => {
@@ -115,6 +138,7 @@ describe('referential shape', () => {
       sections: [],
       tasks: [],
       subtasks: [],
+      developers: [],
     })
     expect(validateExportData(data).projects).toEqual([])
   })

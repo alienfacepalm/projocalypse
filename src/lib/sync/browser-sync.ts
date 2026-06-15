@@ -1,6 +1,7 @@
 import {
   decodeSyncSlice,
   encodeSyncSlice,
+  exportToSyncSlice,
   isSyncPayloadTooLargeForLocalStorage,
   mergeSyncSlices,
   mergeSyncWithBaseline,
@@ -133,15 +134,7 @@ async function loadSources(): Promise<SyncSources> {
 export async function buildSyncSliceFromDb(): Promise<SyncSlice> {
   const data = await exportData()
   const tombstones = await getAllTombstones()
-  return {
-    version: 2,
-    syncedAt: data.exportedAt,
-    projects: data.projects,
-    sections: data.sections,
-    tasks: data.tasks,
-    subtasks: data.subtasks,
-    tombstones,
-  }
+  return exportToSyncSlice(data, tombstones)
 }
 
 export async function applySyncSliceToDb(slice: SyncSlice): Promise<void> {

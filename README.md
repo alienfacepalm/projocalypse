@@ -7,19 +7,21 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **Projects** with color labels and default sections (To Do, In Progress, Done)
 - **Tasks** with title, description, due date, priority, and completion
 - **Subtasks** inside the task detail panel
-- **List view** — sections as collapsible groups with inline quick-add
-- **Board view** — Kanban columns mapped to sections
+- **List view** — sections as collapsible groups with inline quick-add (full section detail for sprint/backlog breakdown)
+- **Board view** — three workflow lanes (Not started · In progress · Shipped) grouped from sections and completion status
 - **My Tasks** — incomplete tasks across active projects; smart lists (Today, Upcoming, Overdue) and filters
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
 - **Export / import** — validated JSON backup from Settings in the sidebar
-- **Dark mode** — toggle in Settings; preference saved in `localStorage`
+- **Appearance** — light/dark mode and accent palettes in Settings; saved in `localStorage`
 - **Browser sync** — no-server sync across tabs (localStorage mirror) and across devices via a linked sync file in iCloud/Dropbox/Google Drive (File System Access API); conflicts resolved by per-item `updatedAt` (newer wins, ties prefer local)
 - **Project archive & delete** — from the project header menu; restore archived projects from the sidebar
 - **Global search** — find tasks and projects from the sidebar
 - **My Tasks smart lists** — All, Today, Upcoming, Overdue with project and priority filters
-- **Reorder** — drag projects in the sidebar; drag sections in list view
+- **Developer management** — workspace team roster, Master Developer bootstrap, task assignment, permissions
+- **Embed-ready** — mount inside host apps (e.g. Talemail) with `hostProjectId` and configurable chrome; see [doc/EMBED.md](./doc/EMBED.md)
 - **Section picker** — change a task's section from the task detail panel
-- **Board section management** — rename, delete, and add sections on the board
+- **Section management** — add, rename, reorder, and delete sections in list view
+- **Developers** — team roster in Settings; assign tasks via the task detail panel; initials badges on task rows and My Tasks
 
 ## Getting started
 
@@ -28,7 +30,7 @@ pnpm install
 pnpm dev
 ```
 
-The dev server opens your default browser automatically (`server.open` in `vite.config.ts` and `vite --open` in the dev script). If it does not open, check you are on branch `feat/browser-sync` (or `master` after PR #3 merges) — other branches lack this config.
+The dev server opens your default browser automatically (`server.open` in `vite.config.ts` and `vite --open` in the dev script).
 
 ## Build
 
@@ -74,13 +76,13 @@ Open **Settings → Browser sync** to create or link a sync file. Edits debounce
 
 Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as Tabocalypse notes). Sync slice **version 2** adds **delete tombstones** so deletes propagate across devices; v1 sync files still load (without tombstones).
 
-Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The live sync file is named `projocalypse-sync.json`.
+Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. **Export format version 2** adds a `developers` array and task `assigneeId`; version 1 backups still import (assignees default to unassigned). The live sync file is named `projocalypse-sync.json` (sync slice version 3 includes developers).
 
 ## Tech stack
 
 - React 19 + Vite + TypeScript
 - Dexie.js + dexie-react-hooks
-- Tailwind CSS v4 + shadcn/ui (Radix primitives in `src/components/ui/`)
+- Tailwind CSS v4 + shadcn/ui (Radix primitives in `src/components/ui/`) — see [DESIGN.md](./DESIGN.md) for themes, tokens, and Tabocalypse alignment
 - @dnd-kit for drag and drop
 - react-router-dom
 
@@ -90,4 +92,8 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. The l
 - Click a task title to open the detail panel
 - Toggle **Show completed** in the project header to reveal finished tasks
 - List/Board preference is saved per project in `localStorage`
-- Light/Dark theme preference is saved in `localStorage` (Settings → Dark mode / Light mode)
+- Appearance (light/dark + accent palette) is saved in `localStorage` (Settings → Appearance)
+
+## Embedding in host apps
+
+Projocalypse can mount inside another product (e.g. Talemail) with a fixed host project, neutral branding, and optional hidden sidebar. See **[doc/EMBED.md](./doc/EMBED.md)** for `EmbedConfig`, data scoping, and Talemail integration checklist.

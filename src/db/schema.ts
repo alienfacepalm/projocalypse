@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
-import type { Project, Section, Subtask, Task, Tombstone } from '@/models/types'
+import type { Developer, Project, Section, Subtask, Task, Tombstone } from '@/models/types'
+import { DEFAULT_DEVELOPER_PERMISSIONS, MASTER_PERMISSIONS } from '@/lib/permissions'
 
 export interface SyncMeta {
   id: 'sync'
@@ -12,6 +13,7 @@ export class PMDatabase extends Dexie {
   sections!: Table<Section>
   tasks!: Table<Task>
   subtasks!: Table<Subtask>
+  developers!: Table<Developer>
   tombstones!: Table<Tombstone>
   syncMeta!: Table<SyncMeta>
 
@@ -66,6 +68,85 @@ export class PMDatabase extends Dexie {
       tombstones: 'id, entityType, deletedAt',
       syncMeta: 'id',
     })
+    this.version(4)
+      .stores({
+        projects: 'id, sortOrder, archived, updatedAt',
+        sections: 'id, projectId, sortOrder, updatedAt',
+        tasks: 'id, projectId, sectionId, completed, dueDate, assigneeId, sortOrder, updatedAt',
+        subtasks: 'id, taskId, sortOrder, updatedAt',
+        developers: 'id, sortOrder, updatedAt',
+        tombstones: 'id, entityType, deletedAt',
+        syncMeta: 'id',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('tasks')
+          .toCollection()
+          .modify((task: Task) => {
+            if (task.assigneeId === undefined) {
+              task.assigneeId = null
+            }
+          })
+      })
+    this.version(5)
+      .stores({
+        projects: 'id, sortOrder, archived, updatedAt',
+        sections: 'id, projectId, sortOrder, updatedAt',
+        tasks: 'id, projectId, sectionId, completed, dueDate, assigneeId, sortOrder, updatedAt',
+        subtasks: 'id, taskId, sortOrder, updatedAt',
+        developers: 'id, role, sortOrder, updatedAt',
+        tombstones: 'id, entityType, deletedAt',
+        syncMeta: 'id',
+      })
+      .upgrade(async (tx) => {
+        const developers = (await tx.table('developers').toArray()) as Developer[]
+        let masterCount = 0
+
+        for (const developer of developers) {
+          const patch: Partial<Developer> = {}
+          if (!developer.role) {
+            patch.role = 'developer'
+          }
+          if (!developer.permissions) {
+            patch.permissions =
+              developer.role === 'master' ? MASTER_PERMISSIONS : DEFAULT_DEVELOPER_PERMISSIONS
+          }
+          if (Object.keys(patch).length > 0) {
+            await tx.table('developers').update(developer.id, patch)
+          }
+          if ((patch.role ?? developer.role) === 'master') {
+            masterCount += 1
+          }
+        }
+
+        if (developers.length > 0 && masterCount === 0) {
+          const first = developers[0]!
+          await tx.table('developers').update(first.id, {
+            role: 'master',
+            permissions: MASTER_PERMISSIONS,
+          })
+        }
+      })
+    this.version(6)
+      .stores({
+        projects: 'id, sortOrder, archived, updatedAt',
+        sections: 'id, projectId, sortOrder, updatedAt',
+        tasks: 'id, projectId, sectionId, completed, dueDate, assigneeId, sortOrder, updatedAt',
+        subtasks: 'id, taskId, sortOrder, updatedAt',
+        developers: 'id, projectId, role, sortOrder, updatedAt',
+        tombstones: 'id, entityType, deletedAt',
+        syncMeta: 'id',
+      })
+      .upgrade(async (tx) => {
+        const projects = await tx.table('projects').orderBy('sortOrder').toArray()
+        const fallbackProjectId = projects[0]?.id as string | undefined
+
+        await tx.table('developers').toCollection().modify((developer: Developer & { projectId?: string }) => {
+          if (!developer.projectId && fallbackProjectId) {
+            developer.projectId = fallbackProjectId
+          }
+        })
+      })
   }
 }
 
