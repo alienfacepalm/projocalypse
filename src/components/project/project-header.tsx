@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +31,8 @@ export function ProjectHeader({
 }: ProjectHeaderProps) {
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [name, setName] = useState(project.name)
 
   async function saveName() {
@@ -48,13 +51,11 @@ export function ProjectHeader({
   }
 
   async function handleArchive() {
-    if (!confirm(`Archive "${project.name}"? You can restore it later from a backup.`)) return
     await archiveProject(project.id)
     navigate('/my-tasks')
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${project.name}" and all its tasks permanently? This cannot be undone.`)) return
     await deleteProject(project.id)
     navigate('/my-tasks')
   }
@@ -115,17 +116,38 @@ export function ProjectHeader({
               </div>
             </PopoverContent>
           </Popover>
-          <DropdownMenuItem onClick={handleArchive}>
+          <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
             <Archive className="mr-2 h-4 w-4" />
             Archive project
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete project
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title={`Archive "${project.name}"?`}
+        description="The project will be hidden from your sidebar. You can restore it later from a backup."
+        confirmLabel="Archive project"
+        onConfirm={handleArchive}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete "${project.name}"?`}
+        description="All sections, tasks, and subtasks in this project will be permanently removed. This cannot be undone."
+        confirmLabel="Delete project"
+        destructive
+        onConfirm={handleDelete}
+      />
 
       <div className="ml-auto flex items-center gap-2">
         <div className="flex rounded-lg border border-border/70 bg-muted/40 p-0.5">

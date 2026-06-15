@@ -22,8 +22,8 @@
   --color-popover-foreground: #1a1714;
   --color-card: #faf7f1;
   --color-sidebar: #ece5da;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", serif;
 }
 
 .dark {
@@ -75,6 +75,8 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
 }
 
 @import "react-day-picker/style.css";

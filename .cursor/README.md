@@ -21,6 +21,7 @@ Adapted from the [talemail](https://github.com/alienfacepalm/talemail) Cursor co
 | `projocalypse-pnpm.mdc` | `package.json`, `pnpm-lock.yaml`, `**/*.{ts,tsx,css}` | no |
 | `projocalypse-stack.mdc` | `**/*.{ts,tsx,css}` | no |
 | `projocalypse-tailwind-shadcn.mdc` | `src/**/*.{ts,tsx,css}` | no |
+| `projocalypse-delete-confirm.mdc` | `src/**/*.{ts,tsx}` | no |
 
 **Behavior:** agents execute clear requests autonomously (no permission prompts); ask only on genuinely ambiguous decisions. Git policy (commits, push, secrets) lives in `projocalypse-git.mdc` only.
 

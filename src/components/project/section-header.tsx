@@ -14,8 +14,32 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+
+function SectionDeleteConfirm({
+  section,
+  open,
+  onOpenChange,
+}: {
+  section: Section
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Delete "${section.name}"?`}
+      description="All tasks in this section will be permanently removed. This cannot be undone."
+      confirmLabel="Delete section"
+      destructive
+      onConfirm={() => deleteSection(section.id)}
+    />
+  )
+}
 
 interface SectionHeaderProps {
   section: Section
@@ -27,6 +51,7 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ section, taskCount, collapsed, onToggle, sortable = false }: SectionHeaderProps) {
   const [editing, setEditing] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [name, setName] = useState(section.name)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sortableSectionId(section.id),
@@ -101,19 +126,13 @@ export function SectionHeader({ section, taskCount, collapsed, onToggle, sortabl
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setEditing(true)}>Rename section</DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => {
-                if (confirm(`Delete section "${section.name}" and all its tasks?`)) {
-                  deleteSection(section.id)
-                }
-              }}
-            >
+            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
               Delete section
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <SectionDeleteConfirm section={section} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </div>
   )
 }
@@ -187,6 +206,7 @@ interface BoardSectionHeaderProps {
 
 export function BoardSectionHeader({ section, taskCount, sortable = false, dragHandleProps }: BoardSectionHeaderProps) {
   const [editing, setEditing] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [name, setName] = useState(section.name)
 
   async function saveName() {
@@ -200,57 +220,72 @@ export function BoardSectionHeader({ section, taskCount, sortable = false, dragH
   }
 
   return (
-    <div className="group flex items-center gap-1 border-b border-border/60 px-3 py-2.5">
+    <div className="group relative overflow-hidden border-b border-border/50 bg-gradient-to-b from-muted/30 via-muted/10 to-transparent">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent"
+      />
       {sortable && dragHandleProps && (
         <button
           type="button"
-          className="cursor-grab text-muted-foreground opacity-0 group-hover:opacity-100"
+          className="absolute left-1 top-1/2 z-10 -translate-y-1/2 cursor-grab rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted/60 hover:text-foreground group-hover:opacity-100"
           aria-label={`Reorder ${section.name}`}
           {...dragHandleProps}
         >
           <GripVertical className="h-4 w-4" />
         </button>
       )}
-      {editing ? (
-        <Input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={saveName}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') saveName()
-            if (event.key === 'Escape') {
-              setName(section.name)
-              setEditing(false)
-            }
-          }}
-          className="h-7 text-sm font-semibold"
-          autoFocus
-        />
-      ) : (
-        <span className="font-display text-sm font-semibold tracking-tight">{section.name}</span>
-      )}
-      <span className="text-xs text-muted-foreground">{taskCount}</span>
-      <div className="ml-auto opacity-0 group-hover:opacity-100">
+      <div className="absolute right-0.5 top-1/2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setEditing(true)}>Rename section</DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => {
-                if (confirm(`Delete section "${section.name}" and all its tasks?`)) {
-                  deleteSection(section.id)
-                }
-              }}
-            >
+            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
               Delete section
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+      <SectionDeleteConfirm section={section} open={deleteOpen} onOpenChange={setDeleteOpen} />
+      <div className="flex flex-col items-center gap-1.5 px-10 py-3.5 text-center">
+        {editing ? (
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={saveName}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') saveName()
+              if (event.key === 'Escape') {
+                setName(section.name)
+                setEditing(false)
+              }
+            }}
+            className="h-8 max-w-full text-center font-display text-sm font-semibold tracking-tight"
+            autoFocus
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="font-display text-[0.9375rem] font-semibold leading-snug tracking-tight text-foreground transition-colors hover:text-primary"
+          >
+            {section.name}
+          </button>
+        )}
+        <span
+          className={cn(
+            'inline-flex min-h-5 min-w-5 items-center justify-center rounded-full px-2',
+            'bg-background/70 text-[10px] font-medium tabular-nums leading-none text-muted-foreground',
+            'ring-1 ring-border/50 backdrop-blur-sm',
+          )}
+          aria-label={`${taskCount} tasks`}
+        >
+          {taskCount}
+        </span>
       </div>
     </div>
   )

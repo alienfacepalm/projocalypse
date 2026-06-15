@@ -87,7 +87,7 @@ function SortableBoardColumn({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex w-72 shrink-0 flex-col rounded-xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-sm"
+      className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-sm"
     >
       <BoardSectionHeader
         section={section}
@@ -189,8 +189,12 @@ export function BoardView({ projectId, taskViewOptions, sectionNameById }: Board
           </div>
         ) : null}
         {activeSection ? (
-          <div className="w-72 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold shadow-lg">
-            {activeSection.name}
+          <div className="w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+            <div className="border-b border-border/50 bg-gradient-to-b from-muted/30 via-muted/10 to-transparent px-10 py-3.5 text-center">
+              <p className="font-display text-[0.9375rem] font-semibold leading-snug tracking-tight">
+                {activeSection.name}
+              </p>
+            </div>
           </div>
         ) : null}
       </DragOverlay>
