@@ -1,0 +1,104 @@
+# GitHub does not allow PR authors to approve their own PRs. When the author is a
+# repository owner (see OWNER_LOGINS), this workflow submits an approval from
+# github-actions[bot] after ci and plan-gap succeed so CODEOWNERS review requirements
+# are met without using --admin.
+#
+# Requires: Settings → Actions → General → "Allow GitHub Actions to create and
+# approve pull requests" (enabled for this repo).
+name: owner auto-approve
+
+on:
+  workflow_run:
+    workflows: [ci, plan-gap]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Approve owner pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const OWNER_LOGINS = ["alienfacepalm", "jagon"];
+            const { owner, repo } = context.repo;
+
+            const pulls = await github.paginate(
+              github.rest.pulls.list,
+              {
+                owner,
+                repo,
+                state: "open",
+                head: `${owner}:${context.payload.workflow_run.head_branch}`,
+              },
+            );
+
+            const pr = pulls[0];
+            if (!pr) {
+              core.info("No open PR for this workflow run branch.");
+              return;
+            }
+
+            if (!OWNER_LOGINS.includes(pr.user.login)) {
+              core.info(
+                `Author @${pr.user.login} is not an owner; skipping auto-approve.`,
+              );
+              return;
+            }
+
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: pr.number,
+            });
+
+            const alreadyApproved = reviews.some(
+              (review) =>
+                review.user?.login === "github-actions[bot]" &&
+                review.state === "APPROVED",
+            );
+
+            if (alreadyApproved) {
+              core.info("Owner PR already approved by Actions.");
+              return;
+            }
+
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: pr.head.sha,
+            });
+
+            const testRun = checks.check_runs.find((run) => run.name === "test");
+            const gapRun = checks.check_runs.find((run) => run.name === "gap");
+
+            const isSuccess = (run) =>
+              run?.status === "completed" && run.conclusion === "success";
+
+            if (!isSuccess(testRun)) {
+              core.info("ci test check not successful yet.");
+              return;
+            }
+
+            if (gapRun && !isSuccess(gapRun)) {
+              core.info("plan-gap check not successful yet.");
+              return;
+            }
+
+            await github.rest.pulls.createReview({
+              owner,
+              repo,
+              pull_number: pr.number,
+              event: "APPROVE",
+              body:
+                "Auto-approved for repository owner (@" +
+                pr.user.login +
+                "). GitHub does not allow authors to approve their own PRs.",
+            });

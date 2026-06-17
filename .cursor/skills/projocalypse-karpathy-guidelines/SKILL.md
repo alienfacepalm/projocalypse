@@ -10,6 +10,8 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from [Andrej
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+**Always-on rule:** **`projocalypse-karpathy-guidelines.mdc`**. File splits: **`projocalypse-file-size.mdc`** (400-line limit under `src/**`).
+
 ## Projocalypse workspace
 
 When `projocalypse-agent-behavior` applies: execute routine work without permission prompts; state assumptions in the response instead of blocking. Ask only for genuine ambiguity.

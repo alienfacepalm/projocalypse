@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Archive, LayoutGrid, List, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Archive, LayoutGrid, List, MoreHorizontal, Palette, Trash2 } from 'lucide-react'
+import { useConfirm } from '@/context/confirm-context'
+import { useRequireActiveDeveloper } from '@/context/active-developer-context'
+import { hasPermission } from '@/lib/permissions'
 import type { Project, ViewMode } from '@/models/types'
 import { PROJECT_COLORS } from '@/models/types'
 import { archiveProject, deleteProject, updateProject } from '@/db/operations'
@@ -33,6 +36,9 @@ export function ProjectHeader({
   onShowCompletedChange,
 }: ProjectHeaderProps) {
   const navigate = useNavigate()
+  const { confirm } = useConfirm()
+  const actor = useRequireActiveDeveloper()
+  const canManageProjects = hasPermission(actor, 'manageProjects')
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(project.name)
 
@@ -52,20 +58,33 @@ export function ProjectHeader({
   }
 
   async function handleArchive() {
-    if (!confirm(`Archive "${project.name}"? You can restore it later from a backup.`)) return
+    const ok = await confirm({
+      title: 'Archive project',
+      description: `Archive "${project.name}"? You can restore it later from a backup.`,
+      confirmLabel: 'Archive',
+      icon: Archive,
+    })
+    if (!ok) return
     await archiveProject(project.id)
     navigate('/my-tasks')
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${project.name}" and all its tasks permanently? This cannot be undone.`)) return
-    await deleteProject(project.id)
+    const ok = await confirm({
+      title: 'Delete project',
+      description: `Delete "${project.name}" and all its tasks permanently? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      icon: Trash2,
+    })
+    if (!ok) return
+    await deleteProject(actor, project.id)
     navigate('/my-tasks')
   }
 
   return (
-    <header className="flex shrink-0 items-center gap-4 border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-sm">
-      <span className="h-3 w-3 shrink-0 rounded-full ring-2 ring-background" style={{ backgroundColor: project.color }} />
+    <header className="flex shrink-0 items-center gap-4 border-b-2 border-primary bg-background/90 px-4 py-3 shadow-hud-sm backdrop-blur-sm">
+      <span className="h-3 w-3 shrink-0 ring-2 ring-primary" style={{ backgroundColor: project.color }} />
       {editing ? (
         <Input
           value={name}
@@ -78,13 +97,13 @@ export function ProjectHeader({
               setEditing(false)
             }
           }}
-          className="max-w-xs font-display text-lg font-semibold"
+          className="max-w-xs font-display text-base font-bold uppercase tracking-widest"
           autoFocus
         />
       ) : (
         <button
           type="button"
-          className="font-display text-lg font-semibold tracking-tight hover:underline"
+          className="font-display text-base font-bold uppercase tracking-widest text-primary hover:text-accent2"
           onClick={() => setEditing(true)}
         >
           {project.name}
@@ -100,7 +119,10 @@ export function ProjectHeader({
         <DropdownMenuContent align="start" className="w-52">
           <Popover>
             <PopoverTrigger asChild>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Change project color</DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <Palette className="mr-2 h-4 w-4" />
+                Change project color
+              </DropdownMenuItem>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-2" align="start">
               <div className="flex flex-wrap gap-2">
@@ -124,15 +146,17 @@ export function ProjectHeader({
             Archive project
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete project
-          </DropdownMenuItem>
+          {canManageProjects && (
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete project
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <div className="ml-auto flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           <input
             type="checkbox"
             checked={showCompleted}
@@ -141,7 +165,7 @@ export function ProjectHeader({
           />
           Show completed
         </label>
-        <div className="flex rounded-lg border border-border/70 bg-muted/40 p-0.5">
+        <div className="flex border border-primary bg-muted/40 p-0.5 shadow-hud-sm">
           <Button
             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
             size="sm"

@@ -49,6 +49,10 @@ export function priorityLabel(priority: Priority): string {
   }
 }
 
+export type Theme = 'light' | 'dark'
+
+export { applyTheme, getThemeMode as getTheme, setThemeMode as setTheme } from '@/lib/theme'
+
 export function getViewMode(projectId: string): 'list' | 'board' {
   return localStorage.getItem(`view-mode-${projectId}`) === 'board' ? 'board' : 'list'
 }

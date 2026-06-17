@@ -17,7 +17,10 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@projocalypse/plan": ["./packages/plan/src/index.ts"],
+      "@projocalypse/core": ["./packages/core/src/index.ts"],
+      "@projocalypse/gap": ["./packages/gap/src/index.ts"]
     },
 
     /* Linting */

@@ -21,8 +21,10 @@ alwaysApply: false
 - **Task** — work item with title, description, due date, priority, completion
 - **Subtask** — checklist item inside a task detail panel
 - **My Tasks** — cross-project view of incomplete tasks
-- **Export backup** — JSON file `projocalypse-backup-YYYY-MM-DD.json`, `ExportData` version `1`
-- **Database** — IndexedDB name `pm-tool` (Dexie)
+- **Export backup** — JSON file `projocalypse-backup-YYYY-MM-DD.json`, `ExportData` version `2` (developers + assignees; v1 still imports)
+- **Developer** — team member scoped to a project (`projectId`); Master/Developer roles and permissions
+- **Embed / host project** — fixed `hostProjectId` when mounted in Talemail or similar; see `doc/EMBED.md`
+- **Embedded PM strategy** — plan-in-git vs board-in-IndexedDB, cross-developer sync layers; see `doc/EMBED-STRATEGY.md`
 
 ## When editing features or stack
 
@@ -36,7 +38,7 @@ alwaysApply: false
 - All markdown files under `doc/` MUST use **CAPITALIZED** filenames (UPPER-KEBAB or UPPERCASE; e.g. `ROADMAP.md`, `README.md`).
 - Place new docs in the appropriate CAPITALIZED subdir (`PLAN` for planning, `ADR` for decision records if added later).
 
-Matches **`projocalypse-filenames.mdc`**; Projocalypse has no `doc/` tree yet — apply when one is added.
+Matches **`projocalypse-filenames.mdc`**. Embed contract: [doc/EMBED.md](../../doc/EMBED.md).
 
 ## Repo note
 

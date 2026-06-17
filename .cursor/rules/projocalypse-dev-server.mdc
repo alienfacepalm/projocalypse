@@ -1,0 +1,43 @@
+---
+description: Single dev-server port (5173) — no port hopping; subagents report conflicts
+alwaysApply: true
+---
+
+# Projocalypse dev server port
+
+**One port only: 5173.** No `5174+`, no `PROJOCALYPSE_DEV_PORT`, no silent Vite port walk.
+
+Related: **`projocalypse-dev-server`** skill, `scripts/dev-port.mjs`, **`projocalypse-pnpm.mdc`**.
+
+Config: `vite.config.ts` (`strictPort: true`), `package.json` `dev` script (CLI `--strictPort`), `playwright.config.ts`.
+
+## Before starting a dev server
+
+1. Run **`pnpm dev:port:check`**.
+2. If **free** → **`pnpm dev`** once (background OK).
+3. If **in use** → **do not** start another Vite instance or use another port.
+
+## On port conflict
+
+| Situation | Action |
+|-----------|--------|
+| Port serves Projocalypse / Vite and matches the task | **Reuse** `http://127.0.0.1:5173/` |
+| Orphan from your session | **`pnpm dev:port:free`**, then **`pnpm dev`** |
+| Blocked by another app | **Stop and report** — do not hop ports |
+
+## Multitask / subagents (Task tool)
+
+1. **`pnpm dev:port:check`** first.
+2. On conflict → **do not** run `pnpm dev` or `vite` on another port.
+3. **Report to parent** via **`pnpm dev:port:report`**.
+
+## Tear down
+
+Throwaway test servers only: **`pnpm dev:port:free`**.
+
+## Do not
+
+- Run bare `vite --open` without `--port 5173 --strictPort` (use **`pnpm dev`**).
+- Start multiple dev servers on 5173, 5174, 5175…
+- Point browser automation at `localhost:5174+`.
+- Hide port conflicts.

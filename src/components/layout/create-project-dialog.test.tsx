@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CreateProjectDialog } from '@/components/layout/create-project-dialog'
+import { ActiveDeveloperProvider } from '@/context/active-developer-context'
 import { clearDb } from '@/test/db-helpers'
 import { db } from '@/db/schema'
 import { PROJECT_COLORS } from '@/models/types'
@@ -11,7 +12,9 @@ function renderDialog(open = true) {
   const onOpenChange = vi.fn()
   render(
     <MemoryRouter>
-      <CreateProjectDialog open={open} onOpenChange={onOpenChange} />
+      <ActiveDeveloperProvider>
+        <CreateProjectDialog open={open} onOpenChange={onOpenChange} />
+      </ActiveDeveloperProvider>
     </MemoryRouter>,
   )
   return { onOpenChange }

@@ -1,10 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  applyDocumentTheme,
+  DEFAULT_APPEARANCE,
+  loadAppearance,
+  saveAppearance,
+} from '@/lib/theme'
+import {
   dueDateClass,
   formatDueDate,
+  getTheme,
   getViewMode,
   priorityColor,
   priorityLabel,
+  setTheme,
   setViewMode,
 } from '@/lib/utils'
 
@@ -80,5 +88,31 @@ describe('view mode persistence', () => {
     setViewMode('proj-1', 'board')
     expect(getViewMode('proj-1')).toBe('board')
     expect(getViewMode('proj-2')).toBe('list')
+  })
+})
+
+describe('theme persistence', () => {
+  afterEach(() => {
+    localStorage.removeItem('projocalypse-appearance')
+    localStorage.removeItem('theme')
+    applyDocumentTheme(DEFAULT_APPEARANCE)
+  })
+
+  it('defaults to light', () => {
+    expect(getTheme()).toBe('light')
+  })
+
+  it('persists dark mode', () => {
+    setTheme('dark')
+    expect(getTheme()).toBe('dark')
+    expect(loadAppearance().mode).toBe('dark')
+  })
+
+  it('applies dark class on documentElement', () => {
+    saveAppearance({ ...DEFAULT_APPEARANCE, mode: 'dark' })
+    applyDocumentTheme(loadAppearance())
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    applyDocumentTheme(DEFAULT_APPEARANCE)
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 })

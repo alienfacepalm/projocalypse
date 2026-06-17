@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { FolderPlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { createProject } from '@/db/operations'
+import { createProject, findWorkspaceActor } from '@/db/operations'
+import { useCanManageProjects } from '@/hooks/use-can-manage-projects'
 import { cn } from '@/lib/utils'
 import { PROJECT_COLORS } from '@/models/types'
 import { Button } from '@/components/ui/button'
@@ -22,6 +24,7 @@ interface CreateProjectDialogProps {
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
   const navigate = useNavigate()
+  const canManageProjects = useCanManageProjects()
   const [projectName, setProjectName] = useState('')
   const [selectedColor, setSelectedColor] = useState<string>(DEFAULT_COLOR)
 
@@ -35,8 +38,9 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   async function handleCreateProject() {
     const name = projectName.trim()
-    if (!name) return
-    const project = await createProject(name, selectedColor)
+    if (!name || !canManageProjects) return
+    const actor = (await findWorkspaceActor('manageProjects')) ?? undefined
+    const project = await createProject(name, selectedColor, actor)
     handleOpenChange(false)
     navigate(`/project/${project.id}`)
   }
@@ -45,7 +49,10 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display">Create project</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 font-display">
+            <FolderPlus className="h-5 w-5 text-primary" />
+            Create project
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -94,7 +101,11 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               })}
             </div>
           </div>
-          <Button onClick={() => void handleCreateProject()} disabled={!projectName.trim()} className="w-full">
+          <Button
+            onClick={() => void handleCreateProject()}
+            disabled={!projectName.trim() || !canManageProjects}
+            className="w-full"
+          >
             Create project
           </Button>
         </div>

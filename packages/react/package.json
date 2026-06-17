@@ -1,0 +1,18 @@
+{
+  "name": "@projocalypse/react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./configure": "./src/configure.ts",
+    "./style.css": "../../src/styles/globals.css"
+  },
+  "dependencies": {
+    "@projocalypse/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
