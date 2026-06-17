@@ -1,0 +1,42 @@
+---
+description: Split source files over 400 lines into focused modules when editing or adding code
+globs: "src/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Projocalypse file size — 400 line limit
+
+Related: **`projocalypse-filenames.mdc`**, **`projocalypse-karpathy-guidelines.mdc`**, **`projocalypse-tests.mdc`**.
+
+## Limit
+
+**400 lines** per `src/**/*.{ts,tsx}` file (excluding blank lines is optional — use raw line count from the editor).
+
+## When to split
+
+| Situation | Action |
+|-----------|--------|
+| File is **already > 400** and you touch it for any task | Split as part of that task (or a follow-up in the same PR if split is large) |
+| Your edit would push a file **past 400** | Extract before landing |
+| File is ≤ 400 and unchanged scope | **Do not** split proactively |
+
+No repo-wide split drive-bys without an explicit user request.
+
+## How to split (behavior-neutral)
+
+1. **Group by concern** — hooks, pure helpers, subcomponents, DB table ops, types — not arbitrary chunk size.
+2. **Keep a thin barrel** when needed — re-export from the original path so callers stay stable, or update imports in one pass.
+3. **Names** — kebab-case paths under the same directory (**`projocalypse-filenames.mdc`**); e.g. `operations.ts` → `project-operations.ts`, `task-operations.ts`.
+4. **Tests** — move or add tests with the extracted module; run **`pnpm test`** on affected paths.
+5. **Public API** — same exports, same runtime behavior; no schema or UX changes during a split-only refactor.
+
+## Exemptions
+
+- Generated or vendor-adjacent files (if added later) — note in PR, do not split blindly.
+- **`projocalypse-real-implementation.mdc`** still applies — splits must stay wired to real Dexie/React paths, not stubs.
+
+## Checklist before finishing a split
+
+- [ ] Each new file ≤ 400 lines (or split again if one concern is still huge)
+- [ ] Imports updated; no duplicate logic
+- [ ] Tests pass for touched modules

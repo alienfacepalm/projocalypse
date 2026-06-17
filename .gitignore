@@ -11,7 +11,14 @@ node_modules
 .pnpm-store
 dist
 coverage
+playwright-report
+test-results
+.projocalypse/board/
+.projocalypse/plan-cache/
+.projocalypse/dev-mirror.json
+packages/cli/dist
 dist-ssr
+.vite
 *.local
 
 # Lockfiles (pnpm only)

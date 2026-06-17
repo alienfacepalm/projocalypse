@@ -1,12 +1,14 @@
 import { renderHook, act } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useTheme } from '@/hooks/use-theme'
-import { applyTheme, getTheme, setTheme } from '@/lib/utils'
+import { applyDocumentTheme, DEFAULT_APPEARANCE, loadAppearance } from '@/lib/theme'
+import { getTheme, setTheme } from '@/lib/utils'
 
 describe('useTheme', () => {
   afterEach(() => {
+    localStorage.removeItem('projocalypse-appearance')
     localStorage.removeItem('theme')
-    applyTheme('light')
+    applyDocumentTheme(DEFAULT_APPEARANCE)
   })
 
   it('reads initial theme from localStorage', () => {
@@ -22,6 +24,7 @@ describe('useTheme', () => {
     })
     expect(result.current[0]).toBe('dark')
     expect(getTheme()).toBe('dark')
+    expect(loadAppearance().mode).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
   })
 })
