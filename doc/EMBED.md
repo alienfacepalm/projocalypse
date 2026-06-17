@@ -17,18 +17,22 @@ For **why** to embed PM in any repo and how developers stay aligned across machi
 | **Appearance** | Global (`localStorage` `projocalypse-appearance`) | Host-global — follows host theme or user preference |
 | **View mode** | Per project (`view-mode-{projectId}`) | Per host project |
 | **Export / import** | Full DB backup from Settings | Prefer `exportProjectData(hostProjectId)` for host-scoped backup |
-| **Browser sync** | Origin-wide mirror + sync file | Same mechanism today — see [EMBED-STRATEGY.md](./EMBED-STRATEGY.md) for team sync layers; host should decide per-host vs per-origin sync file |
+| **Browser sync** | Origin-wide mirror + sync file (namespaced per host package) | Same — scoped by `packageName` / `storageNamespace` |
 
 ## Mounting API
 
 ```tsx
-import App from '@/App'
+import { configureProjocalypseStorage } from '@projocalypse/react/configure'
+import { ProjocalypseApp } from '@projocalypse/react'
+
+configureProjocalypseStorage({ packageName: '@talemail/web' })
 
 // Talemail (example)
-<App
+<ProjocalypseApp
   embed={{
     embedded: true,
     hostProjectId: talemailBook.projocalypseProjectId,
+    packageName: '@talemail/web',
     productName: talemailBook.title,
     tagline: 'Production tasks',
     hideSidebar: true,
@@ -36,6 +40,21 @@ import App from '@/App'
   }}
 />
 ```
+
+`configureProjocalypseStorage` must be imported **before** `ProjocalypseApp` so each host package gets its own IndexedDB (`pm-tool--talemail__web`) when multiple embeds share one browser origin.
+
+### Storage isolation (multiple submodules / hosts)
+
+IndexedDB and `localStorage` mirrors are keyed by **storage namespace**:
+
+| Source (first match wins) | Example namespace | Dexie DB name |
+|---------------------------|-------------------|---------------|
+| `configureProjocalypseStorage({ storageNamespace })` | `my-host` | `pm-tool--my-host` |
+| `configureProjocalypseStorage({ packageName })` / `embed.packageName` | `@talemail/web` → `talemail__web` | `pm-tool--talemail__web` |
+| `VITE_PROJOCALYPSE_STORAGE_NAMESPACE` (host `.env`) | `tabocalypse__web` | `pm-tool--tabocalypse__web` |
+| Standalone default | `default` | `pm-tool` (legacy) |
+
+Dev mirror files write to the **host repo** when Vite uses `devMirrorPlugin({ viteRoot, mirrorRoot: hostRoot })` or `PROJOCALYPSE_MIRROR_ROOT=../..` — see [MONOREPO.md](./MONOREPO.md).
 
 `EmbedProvider` reads `EmbedConfig` from `src/lib/embed.ts`. Defaults match standalone (`STANDALONE_EMBED_CONFIG`).
 
@@ -73,7 +92,7 @@ Legacy global developers (pre-v6) migrate to the first project by `sortOrder` on
 | List/board view mode | **Per project** |
 | Active developer | **Per project** |
 | Developer roster & permissions | **Per project** |
-| Browser sync file link | **Origin-global** (current implementation) |
+| Browser sync file link | **Per storage namespace** on the origin |
 | Full export/import in sidebar | **Whole DB** (embedded hosts should call project-scoped export) |
 
 ## UI surfaces safe to embed

@@ -16,7 +16,7 @@ import { db } from '@/db/schema'
 import { reorderSections, reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
-import { computeSectionReorderUpdates, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
+import { computeSectionReorderUpdates, sectionIdFromReorderOverId, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
 import { AddSectionButton, SectionBlock } from './section-header'
 import { TaskRow } from './task-row'
 import { QuickAddTask } from '@/components/task/quick-add-task'
@@ -98,10 +98,12 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
     const overId = String(over.id)
 
     if (activeId.startsWith('section:')) {
+      const overSectionId = sectionIdFromReorderOverId(overId)
+      if (!overSectionId) return
       const updates = computeSectionReorderUpdates(
         sections,
         sectionIdFromSortableId(activeId),
-        sectionIdFromSortableId(overId),
+        overSectionId,
       )
       if (updates) await reorderSections(updates)
       return

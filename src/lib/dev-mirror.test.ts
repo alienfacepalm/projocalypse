@@ -2,12 +2,12 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { makeExportData, makeProject } from '@/test/db-helpers'
 import {
   configureDevMirror,
-  DEV_MIRROR_LS_KEY,
   readDevMirrorFromLocalStorage,
   restoreDevMirrorIfEmpty,
   shouldSkipDevMirror,
   writeDevMirrorToLocalStorage,
 } from '@/lib/dev-mirror'
+import { devMirrorLsKey } from '@/lib/storage-namespace'
 import { clearDb } from '@/test/db-helpers'
 import { db } from '@/db/schema'
 
@@ -36,7 +36,7 @@ describe('dev-mirror', () => {
     writeDevMirrorToLocalStorage(data)
     const read = readDevMirrorFromLocalStorage()
     expect(read?.projects[0]?.name).toBe('Mirror me')
-    expect(localStorage.getItem(DEV_MIRROR_LS_KEY)).toContain('Mirror me')
+    expect(localStorage.getItem(devMirrorLsKey())).toContain('Mirror me')
   })
 
   it('restores from localStorage when the database is empty', async () => {

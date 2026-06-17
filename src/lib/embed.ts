@@ -2,6 +2,8 @@ import type { Developer, ExportData } from '@/models/types'
 
 /** Configuration when Projocalypse is mounted inside a host app (e.g. Talemail). */
 export interface EmbedConfig {
+  /** Isolates IndexedDB + localStorage mirrors when multiple hosts share one browser origin. */
+  storageNamespace: string | null
   embedded: boolean
   hostProjectId: string | null
   /** Monorepo package name (@talemail/web) for plan sync and gap analysis. */
@@ -20,6 +22,7 @@ export interface EmbedConfig {
 
 export const STANDALONE_EMBED_CONFIG: EmbedConfig = {
   embedded: false,
+  storageNamespace: null,
   hostProjectId: null,
   packageName: null,
   hostEntityId: null,

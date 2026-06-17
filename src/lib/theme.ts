@@ -1,5 +1,7 @@
 /** Appearance: light/dark mode + accent palette. Drives `document.documentElement` CSS variables. */
 
+import { appearanceStorageKey } from '@/lib/storage-namespace'
+
 export const THEME_MODES = ['light', 'dark'] as const
 export type ThemeMode = (typeof THEME_MODES)[number]
 
@@ -77,7 +79,6 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   customAccent2: DEFAULT_CUSTOM_ACCENT2,
 }
 
-const APPEARANCE_STORAGE_KEY = 'projocalypse-appearance'
 const LEGACY_THEME_KEY = 'theme'
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/
@@ -258,7 +259,7 @@ export function normalizeAppearance(raw: unknown): AppearanceSettings {
 
 export function loadAppearance(): AppearanceSettings {
   try {
-    const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY)
+    const stored = localStorage.getItem(appearanceStorageKey())
     if (stored) {
       return normalizeAppearance(JSON.parse(stored))
     }
@@ -273,7 +274,7 @@ export function loadAppearance(): AppearanceSettings {
 }
 
 export function saveAppearance(settings: AppearanceSettings): void {
-  localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(settings))
+  localStorage.setItem(appearanceStorageKey(), JSON.stringify(settings))
   localStorage.setItem(LEGACY_THEME_KEY, settings.mode)
 }
 

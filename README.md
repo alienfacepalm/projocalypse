@@ -8,7 +8,7 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **Tasks** with title, description, due date, priority, and completion
 - **Subtasks** inside the task detail panel
 - **List view** — sections as collapsible groups with inline quick-add (full section detail for sprint/backlog breakdown)
-- **Board view** — one column per section (To Do, In Progress, Done by default) with drag-and-drop between columns
+- **Board view** — one column per section (To Do, In Progress, Done by default) with drag-and-drop between columns; reorder columns via the header grip
 - **My Tasks** — incomplete tasks across active projects; smart lists (Today, Upcoming, Overdue) and filters
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
 - **Export / import** — validated JSON backup from Settings in the sidebar
@@ -21,7 +21,7 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **Monorepo host** — submodule/workspace embed for Talemail-style monorepos; plan sync, gap analysis, `projocalypse` CLI — [doc/MONOREPO.md](./doc/MONOREPO.md)
 - **Embed-ready** — mount inside host apps (e.g. Talemail) with `hostProjectId` and configurable chrome; see [doc/EMBED.md](./doc/EMBED.md)
 - **Section picker** — change a task's section from the task detail panel
-- **Section management** — add, rename, reorder, and delete sections in list view
+- **Section management** — add, rename, reorder, and delete sections in list and board views
 - **Developers** — team roster in Settings (Master / Lead / Developer roles); assign tasks via the task detail panel; initials badges on task rows and My Tasks
 
 ## Getting started
@@ -33,7 +33,7 @@ pnpm dev
 
 Dev server uses **port 5173 only** (`strictPort` — no silent hop to 5174+). Check or free the port: `pnpm dev:port:check`, `pnpm dev:port:free`.
 
-In **dev mode**, Projocalypse **automatically mirrors** IndexedDB on every create/update/delete (debounced to `localStorage` and `.projocalypse/dev-mirror.json`, gitignored). If the DB is wiped, the app restores from the newest mirror on next load.
+In **dev mode**, Projocalypse **automatically mirrors** IndexedDB on every create/update/delete (debounced to namespaced `localStorage` and `.projocalypse/dev-mirror.json` in the host repo, gitignored). If the DB is wiped, the app restores from the newest mirror on next load.
 
 The dev server opens your default browser automatically (`server.open` in `vite.config.ts` and `vite --open` in the dev script).
 
@@ -75,7 +75,11 @@ Interactive runner: `pnpm test:e2e:ui`
 
 ## Data storage
 
-All data lives in your browser's IndexedDB under the database name `pm-tool`. Clearing site data for this origin will delete your projects and tasks — use **Export backup** regularly.
+All data lives in your browser's IndexedDB. **Standalone** Projocalypse uses the legacy database name `pm-tool`. **Embedded hosts** (or multiple submodule copies on the same origin) should set a **storage namespace** via `packageName` in `EmbedConfig`, `configureProjocalypseStorage`, or `VITE_PROJOCALYPSE_STORAGE_NAMESPACE` in the host `.env` — each namespace gets its own Dexie DB (`pm-tool--<namespace>`) and namespaced `localStorage` mirrors so boards do not overwrite each other.
+
+Clearing site data for an origin removes all namespaces on that origin — use **Export backup** regularly.
+
+In **dev mode**, mirrors also write to `.projocalypse/dev-mirror.json` in the **host repo** (configure `PROJOCALYPSE_MIRROR_ROOT` or `devMirrorPlugin({ mirrorRoot })` when Projocalypse is a submodule). See [doc/EMBED.md](./doc/EMBED.md).
 
 ### Browser sync (no server)
 
@@ -83,7 +87,7 @@ Projocalypse follows the same offline-first sync pattern as [Tabocalypse](https:
 
 | Layer | Mechanism | Scope |
 |-------|-----------|--------|
-| **Mirror** | `localStorage` (`projocalypseSyncMirror`) | All tabs on this origin |
+| **Mirror** | `localStorage` (`projocalypseSyncMirror`, namespaced per host package) | All tabs on this origin for that namespace |
 | **Cloud** | Linked `projocalypse-sync.json` via File System Access API | Any device sharing that file (e.g. via iCloud Drive, Dropbox, Google Drive) |
 
 Open **Settings → Browser sync** to create or link a sync file. Edits debounce into the mirror and sync file automatically; other tabs pick up mirror changes via the `storage` event; linked files are polled every few seconds when the tab is visible.

@@ -13,6 +13,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { ProjectView } from '@/components/project/project-view'
 import { MyTasksView } from '@/components/my-tasks/my-tasks-view'
 import { flushDevMirrorBackup, restoreDevMirrorIfEmpty } from '@/lib/dev-mirror'
+import { bootProjocalypseRuntime } from '@/lib/projocalypse-runtime'
 import { initBrowserSync, startSyncListeners } from '@/lib/sync/browser-sync'
 import type { EmbedConfig } from '@/lib/embed'
 
@@ -32,6 +33,7 @@ export default function App({ embed }: { embed?: Partial<EmbedConfig> }) {
     let cancelled = false
     let stopListeners: (() => void) | undefined
     void (async () => {
+      bootProjocalypseRuntime(embed)
       await restoreDevMirrorIfEmpty(embed)
       if (cancelled) return
       await initBrowserSync()

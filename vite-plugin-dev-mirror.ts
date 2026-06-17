@@ -4,8 +4,22 @@ import type { Plugin } from 'vite'
 
 const MIRROR_ROUTE = '/__dev/mirror'
 
-export function devMirrorPlugin(rootDir: string): Plugin {
-  const mirrorPath = path.join(rootDir, '.projocalypse', 'dev-mirror.json')
+export interface DevMirrorPluginOptions {
+  /** Vite config root (projocalypse package dir when submoduled). */
+  viteRoot: string
+  /** Host repo root for `.projocalypse/dev-mirror.json`. Defaults to viteRoot. */
+  mirrorRoot?: string
+}
+
+function resolveMirrorRoot(options: DevMirrorPluginOptions): string {
+  const fromEnv = process.env.PROJOCALYPSE_MIRROR_ROOT?.trim()
+  if (fromEnv) return path.resolve(options.viteRoot, fromEnv)
+  return options.mirrorRoot ?? options.viteRoot
+}
+
+export function devMirrorPlugin(options: DevMirrorPluginOptions | string): Plugin {
+  const mirrorRoot = typeof options === 'string' ? options : resolveMirrorRoot(options)
+  const mirrorPath = path.join(mirrorRoot, '.projocalypse', 'dev-mirror.json')
 
   return {
     name: 'projocalypse-dev-mirror',
