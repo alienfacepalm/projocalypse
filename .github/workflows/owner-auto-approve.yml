@@ -76,19 +76,19 @@ jobs:
               ref: pr.head.sha,
             });
 
-            const required = checks.check_runs.filter(
-              (run) => run.name === "test" || run.name === "gap",
-            );
+            const testRun = checks.check_runs.find((run) => run.name === "test");
+            const gapRun = checks.check_runs.find((run) => run.name === "gap");
 
-            const checksReady =
-              required.length >= 2 &&
-              required.every(
-                (run) =>
-                  run.status === "completed" && run.conclusion === "success",
-              );
+            const isSuccess = (run) =>
+              run?.status === "completed" && run.conclusion === "success";
 
-            if (!checksReady) {
-              core.info("Waiting for both ci and plan-gap to finish.");
+            if (!isSuccess(testRun)) {
+              core.info("ci test check not successful yet.");
+              return;
+            }
+
+            if (gapRun && !isSuccess(gapRun)) {
+              core.info("plan-gap check not successful yet.");
               return;
             }
 
