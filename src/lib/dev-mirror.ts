@@ -6,13 +6,13 @@ import {
   resumeDevMirrorAutoBackup,
   suspendDevMirrorAutoBackup,
 } from '@/lib/dev-mirror-guard'
+import { devMirrorLsKey } from '@/lib/storage-namespace'
+import { DEV_MIRROR_DISK_URL } from '@/lib/dev-mirror-keys'
 import type { EmbedConfig } from '@/lib/embed'
 import { E2E_EMBED_PROJECT_ID } from '@/e2e/embed-constants'
-import { DEV_MIRROR_DISK_URL, DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
 import type { Table } from 'dexie'
 
-export { DEV_MIRROR_DISK_URL, DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
-
+export { DEV_MIRROR_DISK_URL } from '@/lib/dev-mirror-keys'
 let skipDevMirror = false
 let devMirrorEnabledOverride: boolean | null = null
 let pushTimer: ReturnType<typeof setTimeout> | null = null
@@ -44,7 +44,7 @@ export async function isDatabaseEmpty(): Promise<boolean> {
 
 export function readDevMirrorFromLocalStorage(): ExportData | undefined {
   try {
-    const raw = localStorage.getItem(DEV_MIRROR_LS_KEY)
+    const raw = localStorage.getItem(devMirrorLsKey())
     if (!raw) return undefined
     return validateExportData(JSON.parse(raw))
   } catch {
@@ -54,7 +54,7 @@ export function readDevMirrorFromLocalStorage(): ExportData | undefined {
 
 export function writeDevMirrorToLocalStorage(data: ExportData): boolean {
   try {
-    localStorage.setItem(DEV_MIRROR_LS_KEY, JSON.stringify(data))
+    localStorage.setItem(devMirrorLsKey(), JSON.stringify(data))
     return true
   } catch {
     return false
@@ -215,8 +215,4 @@ export function installDevMirrorAutoBackup(): void {
   window.addEventListener('pagehide', () => {
     void flushDevMirrorBackup()
   })
-}
-
-if (typeof window !== 'undefined') {
-  installDevMirrorAutoBackup()
 }

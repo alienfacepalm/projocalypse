@@ -4,8 +4,6 @@ import { filterByTombstones, mergeTombstoneLists, tombstoneMap } from '@/db/tomb
 import { mergePreferNewerBaseline, mergeSyncSources } from '@/lib/sync/merge'
 
 export const SYNC_SLICE_VERSION = 3 as const
-export const SYNC_MIRROR_KEY = 'projocalypseSyncMirror'
-export const SYNC_CLOUD_KEY = 'projocalypseSyncCloud'
 export const SYNC_FILE_NAME = 'projocalypse-sync.json'
 
 const TOMBSTONE_ENTITY_TYPES = new Set<TombstoneEntityType>(['project', 'section', 'task', 'subtask'])

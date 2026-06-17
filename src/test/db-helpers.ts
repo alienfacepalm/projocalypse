@@ -1,4 +1,4 @@
-import { db } from '@/db/schema'
+import { db, resetDatabaseInstanceForTests } from '@/db/schema'
 import { createProject, bootstrapMasterDeveloper } from '@/db/operations'
 import { LEAD_PERMISSIONS, MASTER_PERMISSIONS } from '@/lib/permissions'
 import type { Developer, ExportData, Project, Section, Subtask, Task } from '@/models/types'
@@ -6,7 +6,8 @@ import type { Developer, ExportData, Project, Section, Subtask, Task } from '@/m
 export async function clearDb(): Promise<void> {
   db.close()
   await db.delete()
-  await db.open()
+  resetDatabaseInstanceForTests()
+  db.open()
 }
 
 export function makeProject(overrides: Partial<Project> = {}): Project {

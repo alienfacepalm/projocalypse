@@ -9,7 +9,7 @@ const DEV_PORT = 5173
 const host = '127.0.0.1'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), devMirrorPlugin(__dirname)],
+  plugins: [react(), tailwindcss(), devMirrorPlugin({ viteRoot: __dirname })],
   server: {
     host,
     port: DEV_PORT,

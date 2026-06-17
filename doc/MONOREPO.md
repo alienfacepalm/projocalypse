@@ -103,8 +103,11 @@ Serve pending files at `/.projocalypse/pending/<slug>.json` in the host Vite/app
 ## Embed mount
 
 ```tsx
+import { configureProjocalypseStorage } from '@projocalypse/react/configure'
 import { ProjocalypseApp } from '@projocalypse/react'
 import '@projocalypse/react/style.css'
+
+configureProjocalypseStorage({ packageName: '@talemail/web' })
 
 <ProjocalypseApp
   embed={{
@@ -120,6 +123,26 @@ import '@projocalypse/react/style.css'
   }}
 />
 ```
+
+### Host Vite: dev mirror in repo root
+
+When Projocalypse is a submodule, point the dev mirror plugin at the **host** repo so `.projocalypse/dev-mirror.json` lives with the parent project:
+
+```ts
+import { devMirrorPlugin } from 'projocalypse/vite-plugin-dev-mirror' // or relative path to submodule
+
+export default defineConfig({
+  plugins: [
+    devMirrorPlugin({
+      viteRoot: path.resolve(__dirname, '../projocalypse'),
+      mirrorRoot: __dirname,
+    }),
+  ],
+  envPrefix: ['VITE_', 'PROJOCALYPSE_'],
+})
+```
+
+Set `VITE_PROJOCALYPSE_STORAGE_NAMESPACE` in the host `.env` to the package slug (e.g. `talemail__web`) when not using `configureProjocalypseStorage`.
 
 First mount without `hostProjectId` opens the **host setup wizard** (create project → import pending tasks).
 

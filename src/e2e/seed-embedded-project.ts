@@ -1,18 +1,23 @@
+import { bootProjocalypseRuntime } from '@/lib/projocalypse-runtime'
 import { db } from '@/db/schema'
 import { makeMasterDeveloper, makeProject, makeSection } from '@/test/db-helpers'
-import { DEV_MIRROR_LS_KEY } from '@/lib/dev-mirror-keys'
-import { SYNC_CLOUD_KEY, SYNC_MIRROR_KEY } from '@/lib/sync/payload'
+import {
+  appearanceStorageKey,
+  devMirrorLsKey,
+  syncCloudKey,
+  syncMirrorKey,
+} from '@/lib/storage-namespace'
 import { E2E_EMBED_PROJECT_ID, E2E_EMBED_PROJECT_NAME } from '@/e2e/embed-constants'
 
 export { E2E_EMBED_PROJECT_ID, E2E_EMBED_PROJECT_NAME } from '@/e2e/embed-constants'
 
-const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
-  DEV_MIRROR_LS_KEY,
-  SYNC_MIRROR_KEY,
-  SYNC_CLOUD_KEY,
-  'projocalypse-appearance',
+const PRESERVED_LOCAL_STORAGE_KEYS = [
+  devMirrorLsKey(),
+  syncMirrorKey(),
+  syncCloudKey(),
+  appearanceStorageKey(),
   'theme',
-])
+]
 
 function clearLocalStorageExceptPreserved(): void {
   const preserved = new Map<string, string>()
@@ -28,6 +33,7 @@ function clearLocalStorageExceptPreserved(): void {
 
 /** Seeds IndexedDB for Talemail-style embed: fixed host project + master developer + sections. */
 export async function seedEmbeddedTalemailProject(): Promise<string> {
+  bootProjocalypseRuntime({ packageName: '@talemail/web-e2e' })
   await db.delete()
   await db.open()
 

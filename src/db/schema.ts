@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type { Developer, Project, Section, Subtask, Task, Tombstone } from '@/models/types'
 import { DEFAULT_DEVELOPER_PERMISSIONS, MASTER_PERMISSIONS } from '@/lib/permissions'
+import { dexieDatabaseName, getActiveStorageNamespace } from '@/lib/storage-namespace'
 
 export interface SyncMeta {
   id: 'sync'
@@ -17,8 +18,8 @@ export class PMDatabase extends Dexie {
   tombstones!: Table<Tombstone>
   syncMeta!: Table<SyncMeta>
 
-  constructor() {
-    super('pm-tool')
+  constructor(databaseName: string) {
+    super(databaseName)
     this.version(1).stores({
       projects: 'id, sortOrder, archived',
       sections: 'id, projectId, sortOrder',
@@ -167,4 +168,38 @@ export class PMDatabase extends Dexie {
   }
 }
 
-export const db = new PMDatabase()
+let databaseInstance: PMDatabase | undefined
+let databaseNamespace: string | undefined
+
+export function ensureDatabase(namespace?: string): PMDatabase {
+  if (databaseInstance) {
+    if (namespace !== undefined && databaseNamespace !== namespace && import.meta.env.DEV) {
+      console.warn(
+        `[projocalypse] Storage namespace already initialized as "${databaseNamespace}"; ignoring "${namespace}".`,
+      )
+    }
+    return databaseInstance
+  }
+
+  const resolvedNamespace = namespace ?? getActiveStorageNamespace()
+  databaseNamespace = resolvedNamespace
+  databaseInstance = new PMDatabase(dexieDatabaseName(resolvedNamespace))
+  return databaseInstance
+}
+
+export function resetDatabaseInstanceForTests(): void {
+  databaseInstance = undefined
+  databaseNamespace = undefined
+}
+
+function createDatabaseProxy(): PMDatabase {
+  return new Proxy({} as PMDatabase, {
+    get(_target, prop) {
+      const instance = ensureDatabase()
+      const value = Reflect.get(instance, prop, instance)
+      return typeof value === 'function' ? value.bind(instance) : value
+    },
+  })
+}
+
+export const db = createDatabaseProxy()

@@ -22,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
       embed={{
         embedded: true,
         hostProjectId: projectId,
+        packageName: '@talemail/web-e2e',
         productName: E2E_EMBED_PROJECT_NAME,
         tagline: 'Production tasks',
         hideSidebar: true,

@@ -203,9 +203,14 @@ export function AddSectionButton({ projectId }: { projectId: string }) {
 interface BoardSectionHeaderProps {
   section: Section
   taskCount: number
+  sortable?: boolean
+  dragHandleProps?: {
+    attributes: ReturnType<typeof useSortable>['attributes']
+    listeners: ReturnType<typeof useSortable>['listeners']
+  }
 }
 
-export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderProps) {
+export function BoardSectionHeader({ section, taskCount, sortable = false, dragHandleProps }: BoardSectionHeaderProps) {
   const { confirm: askConfirm } = useConfirm()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(section.name)
@@ -222,6 +227,17 @@ export function BoardSectionHeader({ section, taskCount }: BoardSectionHeaderPro
 
   return (
     <div className="group flex items-center gap-1 border-b-2 border-primary/40 px-3 py-2.5">
+      {sortable && dragHandleProps && (
+        <button
+          type="button"
+          className="cursor-grab text-muted-foreground opacity-0 group-hover:opacity-100"
+          aria-label={`Reorder ${section.name}`}
+          {...dragHandleProps.attributes}
+          {...dragHandleProps.listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       {editing ? (
         <Input
           value={name}

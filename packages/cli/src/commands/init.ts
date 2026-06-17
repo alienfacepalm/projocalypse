@@ -43,8 +43,11 @@ function scaffoldEmbedStub(root: string, appRel: string, packageName: string): v
   const stubPath = join(appDir, 'src', 'projocalypse-embed.tsx')
   if (existsSync(stubPath)) return
   mkdirSync(join(appDir, 'src'), { recursive: true })
-  const content = `import App from '@projocalypse/react'
+  const content = `import { configureProjocalypseStorage } from '@projocalypse/react/configure'
+import App from '@projocalypse/react'
 import type { EmbedConfig } from '@projocalypse/react'
+
+configureProjocalypseStorage({ packageName: '${packageName}' })
 
 export interface ProjocalypseEmbedProps {
   hostProjectId: string
