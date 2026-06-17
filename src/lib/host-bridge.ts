@@ -133,6 +133,23 @@ export interface ApplyPendingResult {
   skipped: number
 }
 
+async function pruneOrphanSections(projectId: string, allowedNames: string[]): Promise<number> {
+  const allowed = new Set(allowedNames.map((name) => name.toLowerCase()))
+  const sections = await db.sections.where('projectId').equals(projectId).toArray()
+  let removed = 0
+
+  for (const section of sections) {
+    if (allowed.has(section.name.toLowerCase())) continue
+    const taskCount = await db.tasks.where('sectionId').equals(section.id).count()
+    if (taskCount === 0) {
+      await db.sections.delete(section.id)
+      removed += 1
+    }
+  }
+
+  return removed
+}
+
 export async function applyPendingSync(
   projectId: string,
   pendingRaw: unknown,
@@ -147,6 +164,8 @@ export async function applyPendingSync(
     const outcome = await upsertPendingTask(projectId, sections, upsert, defaultSection)
     result[outcome] += 1
   }
+
+  await pruneOrphanSections(projectId, pending.sections)
 
   return result
 }
