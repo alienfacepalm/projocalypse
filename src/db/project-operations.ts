@@ -67,6 +67,11 @@ export async function deleteProject(actor: Developer, id: string): Promise<void>
   await deleteProjectUnsafe(id)
 }
 
+/** System cleanup (imports, migrations) without a permission actor. */
+export async function deleteProjectSystem(id: string): Promise<void> {
+  await deleteProjectUnsafe(id)
+}
+
 async function deleteProjectUnsafe(id: string): Promise<void> {
   const sections = await db.sections.where('projectId').equals(id).toArray()
   const tasks = await db.tasks.where('projectId').equals(id).toArray()
@@ -96,6 +101,6 @@ const GETTING_STARTED_NAME = 'Getting Started'
 export async function removeGettingStartedProjects(): Promise<void> {
   const projects = await db.projects.filter((p) => p.name === GETTING_STARTED_NAME).toArray()
   for (const project of projects) {
-    await deleteProjectUnsafe(project.id)
+    await deleteProjectSystem(project.id)
   }
 }

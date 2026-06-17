@@ -243,6 +243,15 @@ export function schedulePushLocalSync(): void {
   }, PUSH_DEBOUNCE_MS)
 }
 
+/** Push sync mirror/cloud immediately after bulk import so a reload does not restore stale data. */
+export async function flushLocalSyncAfterMutation(): Promise<void> {
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
+  await pushLocalSync()
+}
+
 /** Pull remote changes, then push local state (bidirectional sync). */
 export async function syncNow(): Promise<void> {
   lastAppliedFingerprint = ''

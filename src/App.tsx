@@ -10,6 +10,7 @@ import { TaskPanelProvider } from '@/context/task-panel-context'
 import { DeveloperBootstrapDialog } from '@/components/developer/developer-bootstrap-dialog'
 import { HostSetupWizard } from '@/components/host/host-setup-wizard'
 import { AppShell } from '@/components/layout/app-shell'
+import { TalemailImportPrompt } from '@/components/layout/talemail-import-prompt'
 import { ProjectView } from '@/components/project/project-view'
 import { MyTasksView } from '@/components/my-tasks/my-tasks-view'
 import { flushDevMirrorBackup, restoreDevMirrorIfEmpty } from '@/lib/dev-mirror'
@@ -65,6 +66,7 @@ export default function App({ embed }: { embed?: Partial<EmbedConfig> }) {
         <ConfirmProvider>
           <ActiveDeveloperProvider>
             <TaskPanelProvider>
+              <TalemailImportPrompt />
               <AppShell>
                 <Routes>
                   <Route path="/" element={<HomeRedirect />} />

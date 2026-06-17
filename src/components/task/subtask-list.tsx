@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/schema'
 import { createSubtask, deleteSubtask, updateSubtask } from '@/db/operations'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 
 interface SubtaskListProps {
@@ -12,6 +13,7 @@ interface SubtaskListProps {
 export function SubtaskList({ taskId }: SubtaskListProps) {
   const subtasks = useLiveQuery(() => db.subtasks.where('taskId').equals(taskId).sortBy('sortOrder'), [taskId])
   const [newTitle, setNewTitle] = useState('')
+  const [subtaskToDelete, setSubtaskToDelete] = useState<{ id: string; title: string } | null>(null)
 
   async function handleAdd() {
     const trimmed = newTitle.trim()
@@ -35,7 +37,7 @@ export function SubtaskList({ taskId }: SubtaskListProps) {
           <button
             type="button"
             className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-            onClick={() => deleteSubtask(subtask.id)}
+            onClick={() => setSubtaskToDelete({ id: subtask.id, title: subtask.title })}
           >
             Remove
           </button>
@@ -48,6 +50,18 @@ export function SubtaskList({ taskId }: SubtaskListProps) {
         onBlur={handleAdd}
         placeholder="Add subtask…"
         className="h-8 text-sm"
+      />
+      <ConfirmDialog
+        open={subtaskToDelete !== null}
+        onOpenChange={(open) => !open && setSubtaskToDelete(null)}
+        title={`Remove "${subtaskToDelete?.title ?? 'this subtask'}"?`}
+        description="This subtask will be permanently removed. This cannot be undone."
+        confirmLabel="Remove subtask"
+        destructive
+        onConfirm={async () => {
+          if (subtaskToDelete) await deleteSubtask(subtaskToDelete.id)
+          setSubtaskToDelete(null)
+        }}
       />
     </div>
   )

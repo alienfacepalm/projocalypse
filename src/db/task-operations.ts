@@ -2,7 +2,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { recordTombstones } from '@/db/tombstones'
 import { requirePermission } from '@/db/operations-helpers'
 import { db } from '@/db/schema'
-import { pickCanonicalSection } from '@/lib/board-lanes'
+import {
+  completionUpdatesForSectionMove,
+  sectionIdForCompletionToggle,
+} from '@/lib/section-workflow'
 import type { Developer, Priority, Task } from '@/models/types'
 
 export async function createTask(projectId: string, sectionId: string, title: string): Promise<Task> {
@@ -40,19 +43,21 @@ export async function updateTask(
 export async function toggleTaskComplete(task: Task): Promise<void> {
   const completed = !task.completed
   const now = Date.now()
-  const sections = await db.sections.where('projectId').equals(task.projectId).sortBy('sortOrder')
-  const targetSection = pickCanonicalSection(sections, completed ? 'done' : 'todo')
-  const sectionChanged = targetSection && targetSection.id !== task.sectionId
-  const sortOrder = sectionChanged
-    ? await db.tasks.where('sectionId').equals(targetSection!.id).count()
-    : task.sortOrder
-
-  await db.tasks.update(task.id, {
+  const updates: Partial<Pick<Task, 'completed' | 'completedAt' | 'sectionId' | 'sortOrder' | 'updatedAt'>> = {
     completed,
     completedAt: completed ? now : null,
-    ...(sectionChanged ? { sectionId: targetSection!.id, sortOrder } : {}),
     updatedAt: now,
-  })
+  }
+
+  const sections = await db.sections.where('projectId').equals(task.projectId).sortBy('sortOrder')
+  const targetSectionId = sectionIdForCompletionToggle(task, sections, completed)
+  if (targetSectionId) {
+    const count = await db.tasks.where('sectionId').equals(targetSectionId).count()
+    updates.sectionId = targetSectionId
+    updates.sortOrder = count
+  }
+
+  await db.tasks.update(task.id, updates)
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -68,14 +73,71 @@ export async function deleteTask(id: string): Promise<void> {
 }
 
 export async function moveTask(taskId: string, sectionId: string, sortOrder: number): Promise<void> {
-  await db.tasks.update(taskId, { sectionId, sortOrder, updatedAt: Date.now() })
+  const task = await db.tasks.get(taskId)
+  if (!task) return
+
+  const sections = await db.sections.where('projectId').equals(task.projectId).toArray()
+  const sectionNameById = new Map(sections.map((section) => [section.id, section.name]))
+  const workflowUpdates = completionUpdatesForSectionMove(
+    task,
+    sectionNameById.get(task.sectionId),
+    sectionNameById.get(sectionId),
+  )
+
+  await db.tasks.update(taskId, {
+    sectionId,
+    sortOrder,
+    ...workflowUpdates,
+    updatedAt: Date.now(),
+  })
+}
+
+export async function moveTaskToSection(taskId: string, sectionId: string): Promise<void> {
+  const task = await db.tasks.get(taskId)
+  if (!task || task.sectionId === sectionId) return
+
+  const count = await db.tasks
+    .where('sectionId')
+    .equals(sectionId)
+    .filter((item) => item.id !== taskId)
+    .count()
+  await moveTask(taskId, sectionId, count)
 }
 
 export async function reorderTasks(updates: { id: string; sectionId: string; sortOrder: number }[]): Promise<void> {
+  if (updates.length === 0) return
+
+  const firstTask = await db.tasks.get(updates[0]!.id)
+  if (!firstTask) return
+
+  const sections = await db.sections.where('projectId').equals(firstTask.projectId).toArray()
+  const sectionNameById = new Map(sections.map((section) => [section.id, section.name]))
   const now = Date.now()
+
   await db.transaction('rw', db.tasks, async () => {
     for (const update of updates) {
-      await db.tasks.update(update.id, { sectionId: update.sectionId, sortOrder: update.sortOrder, updatedAt: now })
+      const task = await db.tasks.get(update.id)
+      if (!task) continue
+
+      const taskUpdates: Partial<Task> = {
+        sectionId: update.sectionId,
+        sortOrder: update.sortOrder,
+        updatedAt: now,
+      }
+
+      if (update.sectionId !== task.sectionId) {
+        const workflowUpdates = completionUpdatesForSectionMove(
+          task,
+          sectionNameById.get(task.sectionId),
+          sectionNameById.get(update.sectionId),
+          now,
+        )
+        if (workflowUpdates) {
+          Object.assign(taskUpdates, workflowUpdates)
+        }
+      }
+
+      await db.tasks.update(update.id, taskUpdates)
     }
   })
 }

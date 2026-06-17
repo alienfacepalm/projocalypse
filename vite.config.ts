@@ -10,6 +10,8 @@ const host = '127.0.0.1'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), devMirrorPlugin({ viteRoot: __dirname })],
+  // Expose GEMINI_* to import.meta.env for the board chat assistant (local dev).
+  envPrefix: ['VITE_', 'GEMINI_'],
   server: {
     host,
     port: DEV_PORT,

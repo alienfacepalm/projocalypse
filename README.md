@@ -10,13 +10,16 @@ A personal project management app inspired by Asana's core workflow. Runs entire
 - **List view** — sections as collapsible groups with inline quick-add (full section detail for sprint/backlog breakdown)
 - **Board view** — one column per section (To Do, In Progress, Done by default) with drag-and-drop between columns; reorder columns via the header grip
 - **My Tasks** — incomplete tasks across active projects; smart lists (Today, Upcoming, Overdue) and filters
+- **Project filters** — status chips with counts, priority filter, sort (board order, status, priority, title, recently updated), and show completed toggle on project views
 - **Drag and drop** — reorder tasks and move between sections (including empty columns)
-- **Export / import** — validated JSON backup from Settings in the sidebar
+- **Export / import** — validated JSON backup from Settings in the sidebar; bundled **Talemail MVP** sprint board import (see [imports/README.md](./imports/README.md))
 - **Appearance** — light/dark mode and accent palettes in Settings; saved in `localStorage`
 - **Browser sync** — no-server sync across tabs (localStorage mirror) and across devices via a linked sync file in iCloud/Dropbox/Google Drive (File System Access API); conflicts resolved by per-item `updatedAt` (newer wins, ties prefer local)
 - **Project archive & delete** — from the project header menu; restore archived projects from the sidebar
 - **Global search** — find tasks and projects from the sidebar
 - **My Tasks smart lists** — All, Today, Upcoming, Overdue with project and priority filters
+- **Reorder** — drag projects in the sidebar; drag sections in list and board views
+- **Kanban workflow** — default column names map to status; completing a task or moving it to Done/Shipped marks it complete; moving out of a done column reopens it
 - **Developer management** — per-project team roster; empty roster bootstraps a **Master Developer**; **Lead** developers can add teammates; **Developer** role handles day-to-day task work with limited admin rights
 - **Monorepo host** — submodule/workspace embed for Talemail-style monorepos; plan sync, gap analysis, `projocalypse` CLI — [doc/MONOREPO.md](./doc/MONOREPO.md)
 - **Embed-ready** — mount inside host apps (e.g. Talemail) with `hostProjectId` and configurable chrome; see [doc/EMBED.md](./doc/EMBED.md)
@@ -96,6 +99,10 @@ Conflicts use **last-write-wins per entity id** by `updatedAt` (same strategy as
 
 Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. **Export format version 2** adds a `developers` array and task `assigneeId`; version 1 backups still import (assignees default to unassigned). The live sync file is named `projocalypse-sync.json` (sync slice version 3 includes developers).
 
+## Environment (optional — board chat)
+
+For the upcoming Gemini-powered board assistant (slash commands like `/add-task`), copy [`.env.example`](./.env.example) to `.env` and set `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey). Optional `GEMINI_MODEL` defaults to `gemini-2.5-flash` (same as Talemail). Restart `pnpm dev` after changing env vars. **Never commit `.env`** — it is gitignored.
+
 ## Tech stack
 
 - React 19 + Vite + TypeScript
@@ -108,7 +115,7 @@ Backup files use the naming pattern `projocalypse-backup-YYYY-MM-DD.json`. **Exp
 
 - Press **Enter** in quick-add fields to create tasks
 - Click a task title to open the detail panel
-- Toggle **Show completed** in the project header to reveal finished tasks
+- Toggle **Show completed** in the project toolbar to reveal finished tasks
 - List/Board preference is saved per project in `localStorage`
 - Appearance (light/dark + accent palette) is saved in `localStorage` (Settings → Appearance)
 

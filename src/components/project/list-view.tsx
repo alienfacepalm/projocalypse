@@ -15,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { db } from '@/db/schema'
 import { reorderSections, reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
+import { applyProjectTaskView, type ProjectTaskViewOptions } from '@/lib/project-task-view'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
 import { computeSectionReorderUpdates, sectionIdFromReorderOverId, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
 import { AddSectionButton, SectionBlock } from './section-header'
@@ -24,7 +25,8 @@ import { cn } from '@/lib/utils'
 
 interface ListViewProps {
   projectId: string
-  showCompleted: boolean
+  taskViewOptions: ProjectTaskViewOptions
+  sectionNameById: Map<string, string>
 }
 
 function SectionDropZone({
@@ -50,25 +52,27 @@ function SectionDropZone({
   )
 }
 
-export function ListView({ projectId, showCompleted }: ListViewProps) {
+export function ListView({ projectId, taskViewOptions, sectionNameById }: ListViewProps) {
   const sections = useLiveQuery(() => db.sections.where('projectId').equals(projectId).sortBy('sortOrder'), [projectId])
   const allTasks = useLiveQuery(() => db.tasks.where('projectId').equals(projectId).toArray(), [projectId])
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeSection, setActiveSection] = useState<Section | null>(null)
 
+  const visibleTasks = useMemo(
+    () => applyProjectTaskView(allTasks ?? [], sectionNameById, taskViewOptions),
+    [allTasks, sectionNameById, taskViewOptions],
+  )
+
   const tasksBySection = useMemo(() => {
     const map = new Map<string, Task[]>()
-    for (const task of allTasks ?? []) {
+    for (const task of visibleTasks) {
       const list = map.get(task.sectionId) ?? []
       list.push(task)
       map.set(task.sectionId, list)
     }
-    for (const [, tasks] of map) {
-      tasks.sort((a, b) => a.sortOrder - b.sortOrder)
-    }
     return map
-  }, [allTasks])
+  }, [visibleTasks])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const sectionSortableIds = (sections ?? []).map((section) => sortableSectionId(section.id))
@@ -131,7 +135,7 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
                 section={section}
                 tasks={tasksBySection.get(section.id) ?? []}
                 projectId={projectId}
-                showCompleted={showCompleted}
+                showCompleted={taskViewOptions.showCompleted}
                 collapsed={!!collapsedSections[section.id]}
                 onToggle={() => toggleSection(section.id)}
                 sortable
@@ -142,7 +146,14 @@ export function ListView({ projectId, showCompleted }: ListViewProps) {
         <AddSectionButton projectId={projectId} />
       </div>
       <DragOverlay>
-        {activeTask ? <TaskRow task={activeTask} draggable={false} showTooltip={false} /> : null}
+        {activeTask ? (
+          <TaskRow
+            task={activeTask}
+            sectionName={sectionNameById.get(activeTask.sectionId)}
+            draggable={false}
+            showTooltip={false}
+          />
+        ) : null}
         {activeSection ? (
           <div className="border-2 border-primary bg-muted/40 px-3 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary shadow-hud-sm">
             {activeSection.name}

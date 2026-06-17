@@ -1,0 +1,54 @@
+---
+description: Destructive deletes require in-app ConfirmDialog — never window.confirm
+globs: "src/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Projocalypse — delete confirmation dialogs
+
+All **user-initiated delete** actions in the UI must show an in-app confirmation dialog before persisting the delete. Do not call `window.confirm()` for deletes.
+
+Related: **`projocalypse-tailwind-shadcn.mdc`**, **`projocalypse-real-implementation.mdc`**.
+
+## Required pattern
+
+| Piece | Location |
+|-------|----------|
+| Primitives | `src/components/ui/alert-dialog.tsx` (Radix Alert Dialog) |
+| Shared wrapper | `ConfirmDialog` in `src/components/ui/confirm-dialog.tsx` |
+| Usage | Local `open` state; menu/button sets `open` to `true`; `onConfirm` calls the Dexie delete in `src/db/operations.ts` |
+
+```tsx
+const [deleteOpen, setDeleteOpen] = useState(false)
+
+<DropdownMenuItem onClick={() => setDeleteOpen(true)}>Delete …</DropdownMenuItem>
+
+<ConfirmDialog
+  open={deleteOpen}
+  onOpenChange={setDeleteOpen}
+  title={`Delete "${entity.name}"?`}
+  description="Explain what is removed and that it cannot be undone."
+  confirmLabel="Delete project"
+  destructive
+  onConfirm={() => deleteProject(entity.id)}
+/>
+```
+
+## Applies to
+
+- Delete **project**, **section**, **task**, **subtask**
+- Any new UI that permanently removes stored entities
+
+Set `destructive` and a specific `confirmLabel` (e.g. `"Delete task"`) on irreversible deletes.
+
+## Does not apply
+
+- Test code and non-UI scripts
+- Sync/tombstone cleanup inside `src/db/` or `src/lib/sync/` (not user-triggered)
+- **Bulk replace** flows (import over live data) — use `ConfirmDialog` too, but wording differs; see **`projocalypse-mission-critical.mdc`**
+
+## When adding a delete control
+
+1. Add `ConfirmDialog` with clear title + description (name the entity; state scope of loss).
+2. Wire the destructive menu/button to open the dialog, not to delete directly.
+3. Never ship `window.confirm()` for delete paths in `src/components/`.

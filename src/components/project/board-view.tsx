@@ -16,6 +16,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { db } from '@/db/schema'
 import { reorderSections, reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
+import { applyProjectTaskView, type ProjectTaskViewOptions } from '@/lib/project-task-view'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
 import {
   computeSectionReorderUpdates,
@@ -30,7 +31,8 @@ import { cn } from '@/lib/utils'
 
 interface BoardViewProps {
   projectId: string
-  showCompleted: boolean
+  taskViewOptions: ProjectTaskViewOptions
+  sectionNameById: Map<string, string>
 }
 
 function BoardColumn({
@@ -88,7 +90,7 @@ function BoardColumn({
   )
 }
 
-export function BoardView({ projectId, showCompleted }: BoardViewProps) {
+export function BoardView({ projectId, taskViewOptions, sectionNameById }: BoardViewProps) {
   const sections = useLiveQuery(
     () => db.sections.where('projectId').equals(projectId).sortBy('sortOrder'),
     [projectId],
@@ -97,19 +99,23 @@ export function BoardView({ projectId, showCompleted }: BoardViewProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeSection, setActiveSection] = useState<Section | null>(null)
 
+  const visibleTasks = useMemo(
+    () => applyProjectTaskView(allTasks ?? [], sectionNameById, taskViewOptions),
+    [allTasks, sectionNameById, taskViewOptions],
+  )
+
   const tasksBySection = useMemo(() => {
     const map = new Map<string, Task[]>()
-    for (const task of allTasks ?? []) {
-      if (!showCompleted && task.completed) continue
+    for (const task of visibleTasks) {
       const list = map.get(task.sectionId) ?? []
       list.push(task)
       map.set(task.sectionId, list)
     }
-    for (const [, tasks] of map) {
-      tasks.sort((a, b) => a.sortOrder - b.sortOrder)
+    for (const [, sectionTasks] of map) {
+      sectionTasks.sort((a, b) => a.sortOrder - b.sortOrder)
     }
     return map
-  }, [allTasks, showCompleted])
+  }, [visibleTasks])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const sectionSortableIds = (sections ?? []).map((section) => sortableSectionId(section.id))
@@ -152,6 +158,8 @@ export function BoardView({ projectId, showCompleted }: BoardViewProps) {
     await reorderTasks(updates)
   }
 
+  const activeSectionName = activeTask ? sectionNameById.get(activeTask.sectionId) : undefined
+
   return (
     <DndContext
       sensors={sensors}
@@ -179,7 +187,7 @@ export function BoardView({ projectId, showCompleted }: BoardViewProps) {
       <DragOverlay>
         {activeTask ? (
           <div className="w-80 border-2 border-primary bg-background shadow-hud">
-            <TaskRow task={activeTask} draggable={false} compact showTooltip={false} />
+            <TaskRow task={activeTask} sectionName={activeSectionName} draggable={false} compact showTooltip={false} />
           </div>
         ) : null}
         {activeSection ? (

@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useConfirm } from '@/context/confirm-context'
 import { CalendarIcon, Flag, Layers, Trash2, Type, User } from 'lucide-react'
 import { format } from 'date-fns'
 import { db } from '@/db/schema'
-import { deleteTask, setTaskAssignee, setTaskPriority, toggleTaskComplete, updateTask } from '@/db/operations'
+import { deleteTask, moveTaskToSection, setTaskAssignee, setTaskPriority, toggleTaskComplete, updateTask } from '@/db/operations'
 import { useProjectActor } from '@/context/active-developer-context'
 import { useTaskPanel } from '@/context/task-panel-context'
 import type { Priority, Task } from '@/models/types'
@@ -13,6 +12,7 @@ import { hasPermission } from '@/lib/permissions'
 import { cn, priorityLabel } from '@/lib/utils'
 import { DeveloperBadge } from '@/components/developer/developer-badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -33,7 +33,6 @@ const PRIORITIES: Priority[] = ['none', 'low', 'medium', 'high']
 function TaskDetailForm({ task }: { task: Task }) {
   const { closeTask } = useTaskPanel()
   const actor = useProjectActor(task.projectId)
-  const { confirm } = useConfirm()
   const project = useLiveQuery(() => db.projects.get(task.projectId), [task.projectId])
   const sections = useLiveQuery(
     () => db.sections.where('projectId').equals(task.projectId).sortBy('sortOrder'),
@@ -50,6 +49,7 @@ function TaskDetailForm({ task }: { task: Task }) {
   const canAssign = actor ? hasPermission(actor, 'assignTasks') : false
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   async function saveTitle() {
     const trimmed = title.trim()
@@ -67,14 +67,6 @@ function TaskDetailForm({ task }: { task: Task }) {
   }
 
   async function handleDelete() {
-    const ok = await confirm({
-      title: 'Delete task',
-      description: 'Delete this task and its subtasks?',
-      confirmLabel: 'Delete',
-      variant: 'destructive',
-      icon: Trash2,
-    })
-    if (!ok) return
     await deleteTask(task.id)
     closeTask()
   }
@@ -139,7 +131,7 @@ function TaskDetailForm({ task }: { task: Task }) {
                 {sections?.map((section) => (
                   <DropdownMenuItem
                     key={section.id}
-                    onClick={() => updateTask(task.id, { sectionId: section.id })}
+                    onClick={() => moveTaskToSection(task.id, section.id)}
                   >
                     {section.name}
                   </DropdownMenuItem>
@@ -253,11 +245,21 @@ function TaskDetailForm({ task }: { task: Task }) {
 
         <SubtaskList taskId={task.id} />
 
-        <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-2">
+        <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} className="gap-2">
           <Trash2 className="h-4 w-4" />
           Delete task
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete "${task.title.trim() || 'this task'}"?`}
+        description="This task and all of its subtasks will be permanently removed. This cannot be undone."
+        confirmLabel="Delete task"
+        destructive
+        onConfirm={handleDelete}
+      />
     </>
   )
 }

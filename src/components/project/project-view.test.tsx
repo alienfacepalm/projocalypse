@@ -104,7 +104,7 @@ describe('ProjectView', () => {
 
     expect(screen.getByText('To Do')).toBeInTheDocument()
     expect(screen.getByText('In Progress')).toBeInTheDocument()
-    expect(screen.getByText('Done')).toBeInTheDocument()
+    expect(screen.getAllByText('Done').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('button', { name: 'Add section' })).toBeInTheDocument()
   })
 

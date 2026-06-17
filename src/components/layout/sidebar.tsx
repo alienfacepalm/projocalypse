@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   DndContext,
   PointerSensor,
@@ -10,9 +10,11 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Database, Download, Menu, Plus, Settings, Upload, X } from 'lucide-react'
+import { ArchiveRestore, CheckSquare, ChevronDown, ChevronRight, Database, Download, LayoutGrid, Menu, Plus, Settings, Upload, X } from 'lucide-react'
 import { db } from '@/db/schema'
 import { exportData, importData, parseImportJson } from '@/lib/export-import'
+import { importTalemailMvpBoard, TALEMAIL_MVP_PROJECT_ID } from '@/lib/talemail-import'
+import { flushLocalSyncAfterMutation } from '@/lib/sync/browser-sync'
 import { reorderProjects, unarchiveProject } from '@/db/operations'
 import { computeProjectReorderUpdates, projectIdFromSortableId, sortableProjectId } from '@/lib/project-drag'
 import { useBrowserSync } from '@/hooks/use-browser-sync'
@@ -42,6 +44,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const { productName, tagline, hideProjectSwitcher } = useEmbed()
   const projects = useLiveQuery(() => db.projects.filter((p) => !p.archived).sortBy('sortOrder'), [])
   const archivedProjects = useLiveQuery(() => db.projects.filter((p) => p.archived).sortBy('sortOrder'), [])
@@ -78,6 +81,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         })
         if (!ok) return
         await importData(data)
+        await flushLocalSyncAfterMutation()
         setImportError(null)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Import failed.'
@@ -85,6 +89,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       }
     }
     input.click()
+  }
+
+  async function handleImportTalemailBoard() {
+    setImportError(null)
+    const ok = await confirm({
+      title: 'Import Talemail MVP board',
+      description:
+        'Import Talemail MVP sprint board from the bundled plan? Replaces only the Talemail MVP project; other projects are kept.',
+      confirmLabel: 'Import',
+      icon: LayoutGrid,
+    })
+    if (!ok) return
+    try {
+      const { taskCount } = await importTalemailMvpBoard()
+      onClose()
+      navigate(`/project/${TALEMAIL_MVP_PROJECT_ID}`)
+      alert(`Talemail MVP imported — ${taskCount} tasks with statuses from the plan.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Talemail import failed.'
+      setImportError(message)
+      alert(message)
+    }
   }
 
   async function handleProjectDragEnd(event: DragEndEvent) {
@@ -222,6 +248,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <DropdownMenuItem onClick={handleImport}>
               <Upload className="mr-2 h-4 w-4" />
               Import backup
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleImportTalemailBoard}>
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Import Talemail MVP board
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
