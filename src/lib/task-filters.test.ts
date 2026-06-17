@@ -27,6 +27,7 @@ describe('task-filters', () => {
       smartList: 'all',
       projectId: null,
       priority: 'any',
+      assigneeId: null,
     })
     expect(filtered.map((task) => task.id)).toEqual(['t1'])
   })
@@ -39,10 +40,10 @@ describe('task-filters', () => {
       makeTask({ id: 'later', projectId, dueDate: inTenDays, priority: 'low' }),
     ]
     expect(
-      filterMyTasks(tasks, activeIds, { smartList: 'today', projectId: null, priority: 'any' }).map((t) => t.id),
+      filterMyTasks(tasks, activeIds, { smartList: 'today', projectId: null, priority: 'any', assigneeId: null }).map((t) => t.id),
     ).toEqual(['today'])
     expect(
-      filterMyTasks(tasks, activeIds, { smartList: 'all', projectId: null, priority: 'high' }).map((t) => t.id),
+      filterMyTasks(tasks, activeIds, { smartList: 'all', projectId: null, priority: 'high', assigneeId: null }).map((t) => t.id),
     ).toEqual(['today'])
   })
 })

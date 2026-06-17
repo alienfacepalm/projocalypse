@@ -8,6 +8,13 @@ export function sectionIdFromSortableId(id: string): string {
   return id.slice('section:'.length)
 }
 
+/** Resolves a drag-over id to a section id when reordering columns (board) or sections (list). */
+export function sectionIdFromReorderOverId(overId: string): string | null {
+  if (overId.startsWith('section:')) return sectionIdFromSortableId(overId)
+  if (overId.startsWith('column:')) return overId.slice('column:'.length)
+  return null
+}
+
 export function computeSectionReorderUpdates(
   sections: Section[],
   activeSectionId: string,

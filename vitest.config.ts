@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@projocalypse/plan': path.resolve(__dirname, './packages/plan/src/index.ts'),
+      '@projocalypse/core': path.resolve(__dirname, './packages/core/src/index.ts'),
+      '@projocalypse/gap': path.resolve(__dirname, './packages/gap/src/index.ts'),
     },
   },
   test: {

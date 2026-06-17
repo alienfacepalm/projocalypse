@@ -29,7 +29,7 @@ const SheetContent = forwardRef<
     <SheetPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out',
+        'fixed z-50 gap-4 border-2 border-primary bg-background p-6 shadow-hud transition ease-in-out',
         side === 'right' && 'inset-y-0 right-0 h-full w-full max-w-md border-l',
         className,
       )}

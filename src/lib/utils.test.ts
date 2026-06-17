@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  applyTheme,
+  applyDocumentTheme,
+  DEFAULT_APPEARANCE,
+  loadAppearance,
+  saveAppearance,
+} from '@/lib/theme'
+import {
   dueDateClass,
   formatDueDate,
   getTheme,
@@ -88,8 +93,9 @@ describe('view mode persistence', () => {
 
 describe('theme persistence', () => {
   afterEach(() => {
+    localStorage.removeItem('projocalypse-appearance')
     localStorage.removeItem('theme')
-    applyTheme('light')
+    applyDocumentTheme(DEFAULT_APPEARANCE)
   })
 
   it('defaults to light', () => {
@@ -99,12 +105,14 @@ describe('theme persistence', () => {
   it('persists dark mode', () => {
     setTheme('dark')
     expect(getTheme()).toBe('dark')
+    expect(loadAppearance().mode).toBe('dark')
   })
 
   it('applies dark class on documentElement', () => {
-    applyTheme('dark')
+    saveAppearance({ ...DEFAULT_APPEARANCE, mode: 'dark' })
+    applyDocumentTheme(loadAppearance())
     expect(document.documentElement.classList.contains('dark')).toBe(true)
-    applyTheme('light')
+    applyDocumentTheme(DEFAULT_APPEARANCE)
     expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 })

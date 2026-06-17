@@ -17,7 +17,8 @@ alwaysApply: false
 | Task | Command |
 |------|---------|
 | Install deps | `pnpm install` |
-| Dev server | `pnpm dev` |
+| Dev server | `pnpm dev` (port **5173**, `strictPort`) |
+| Check / free dev port | `pnpm dev:port:check`, `pnpm dev:port:free` |
 | Production build | `pnpm build` |
 | Lint | `pnpm lint` |
 | Preview build | `pnpm preview` |
@@ -29,4 +30,4 @@ alwaysApply: false
 - After changing `package.json`, run `pnpm install` and commit `pnpm-lock.yaml` with the change.
 - Agents and docs use `pnpm` / `pnpm run <script>` — not `npm run`.
 
-Related: **`projocalypse-stack.mdc`**, **`projocalypse-feature-ship.mdc`**.
+Related: **`projocalypse-stack.mdc`**, **`projocalypse-feature-ship.mdc`**, **`projocalypse-dev-server.mdc`**.

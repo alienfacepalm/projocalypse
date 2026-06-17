@@ -3,9 +3,7 @@ import { validateExportData } from '@/lib/export-import'
 import { filterByTombstones, mergeTombstoneLists, tombstoneMap } from '@/db/tombstones'
 import { mergePreferNewerBaseline, mergeSyncSources } from '@/lib/sync/merge'
 
-export const SYNC_SLICE_VERSION = 2 as const
-export const SYNC_MIRROR_KEY = 'projocalypseSyncMirror'
-export const SYNC_CLOUD_KEY = 'projocalypseSyncCloud'
+export const SYNC_SLICE_VERSION = 3 as const
 export const SYNC_FILE_NAME = 'projocalypse-sync.json'
 
 const TOMBSTONE_ENTITY_TYPES = new Set<TombstoneEntityType>(['project', 'section', 'task', 'subtask'])
@@ -55,18 +53,20 @@ export function exportToSyncSlice(data: ExportData, tombstones: Tombstone[] = []
     sections: data.sections,
     tasks: data.tasks,
     subtasks: data.subtasks,
+    developers: data.developers ?? [],
     tombstones,
   }
 }
 
 export function syncSliceToExportData(slice: SyncSlice): ExportData {
   return {
-    version: 1,
+    version: slice.developers?.length ? 2 : 1,
     exportedAt: slice.syncedAt,
     projects: slice.projects,
     sections: slice.sections,
     tasks: slice.tasks,
     subtasks: slice.subtasks,
+    developers: slice.developers ?? [],
   }
 }
 
@@ -76,7 +76,7 @@ export function validateSyncSlice(data: unknown): SyncSlice {
   }
   const record = data as Record<string, unknown>
   const version = record.version
-  if (version !== 1 && version !== 2) {
+  if (version !== 1 && version !== 2 && version !== 3) {
     throw new Error(`Unsupported sync version (${String(version)}).`)
   }
   const syncedAt = record.syncedAt
@@ -85,11 +85,15 @@ export function validateSyncSlice(data: unknown): SyncSlice {
   }
   const exportData = validateExportData({
     ...record,
-    version: 1,
+    version: version === 3 || Array.isArray(record.developers) ? 2 : 1,
     exportedAt: syncedAt,
   })
   const tombstones = parseTombstones(record.tombstones)
-  return exportToSyncSlice(exportData, tombstones)
+  const slice = exportToSyncSlice(exportData, tombstones)
+  if (version < 3) {
+    return { ...slice, version: version as 1 | 2 }
+  }
+  return slice
 }
 
 export function parseSyncJson(text: string): SyncSlice {
@@ -125,7 +129,35 @@ function applyTombstonesToSlice(slice: SyncSlice, tombstones: Tombstone[]): Sync
     sections: filterByTombstones(slice.sections, map),
     tasks: filterByTombstones(slice.tasks, map),
     subtasks: filterByTombstones(slice.subtasks, map),
+    developers: slice.developers ?? [],
   }
+}
+
+function cloudEntityIds(slice: SyncSlice): Set<string> {
+  const ids = new Set<string>()
+  for (const project of slice.projects) ids.add(project.id)
+  for (const section of slice.sections) ids.add(section.id)
+  for (const task of slice.tasks) ids.add(task.id)
+  for (const subtask of slice.subtasks) ids.add(subtask.id)
+  return ids
+}
+
+/**
+ * Drop mirror-only tombstones for entities still present in cloud data.
+ * Lets a linked sync file restore projects deleted locally before the file was updated.
+ */
+function reconcileTombstonesForCloudRestore(
+  cloud: SyncSlice | undefined,
+  tombstones: Tombstone[],
+): Tombstone[] {
+  if (!cloud) return tombstones
+  const cloudTombstoneIds = new Set((cloud.tombstones ?? []).map((tombstone) => tombstone.id))
+  const aliveInCloud = cloudEntityIds(cloud)
+  return tombstones.filter((tombstone) => {
+    if (cloudTombstoneIds.has(tombstone.id)) return true
+    if (aliveInCloud.has(tombstone.id)) return false
+    return true
+  })
 }
 
 /** Merge cloud + mirror slices the way Tabocalypse merges storage.sync + local mirror. */
@@ -133,13 +165,17 @@ export function mergeSyncSlices(sources: SyncSources): SyncSlice | undefined {
   const { cloud, mirror } = sources
   if (!cloud && !mirror) return undefined
 
-  const tombstones = mergeTombstoneLists(cloud?.tombstones ?? [], mirror?.tombstones ?? [])
+  const tombstones = reconcileTombstonesForCloudRestore(
+    cloud,
+    mergeTombstoneLists(cloud?.tombstones ?? [], mirror?.tombstones ?? []),
+  )
   const map = tombstoneMap(tombstones)
 
   const projects = filterByTombstones(mergeSyncSources(cloud?.projects, mirror?.projects), map)
   const sections = filterByTombstones(mergeSyncSources(cloud?.sections, mirror?.sections), map)
   const tasks = filterByTombstones(mergeSyncSources(cloud?.tasks, mirror?.tasks), map)
   const subtasks = filterByTombstones(mergeSyncSources(cloud?.subtasks, mirror?.subtasks), map)
+  const developers = mergeSyncSources(cloud?.developers, mirror?.developers)
 
   return {
     version: SYNC_SLICE_VERSION,
@@ -148,6 +184,7 @@ export function mergeSyncSlices(sources: SyncSources): SyncSlice | undefined {
     sections,
     tasks,
     subtasks,
+    developers,
     tombstones,
   }
 }
@@ -164,6 +201,7 @@ export function mergeSyncWithBaseline(baseline: SyncSlice, incoming: SyncSlice):
       sections: mergePreferNewerBaseline(baseline.sections, incoming.sections, map),
       tasks: mergePreferNewerBaseline(baseline.tasks, incoming.tasks, map),
       subtasks: mergePreferNewerBaseline(baseline.subtasks, incoming.subtasks, map),
+      developers: mergePreferNewerBaseline(baseline.developers ?? [], incoming.developers ?? [], map),
       tombstones,
     },
     tombstones,

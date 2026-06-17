@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useParams } from 'react-router-dom'
+import { useActiveDeveloper } from '@/context/active-developer-context'
 import type { Priority } from '@/models/types'
 import { db } from '@/db/schema'
 import { isTalemailProjectName } from '@/lib/talemail-import'
@@ -18,6 +19,7 @@ import { useProjectViewMode } from '@/hooks/use-project-view-mode'
 
 export function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>()
+  const { loading: devLoading, needsBootstrap, activeDeveloper } = useActiveDeveloper()
   const project = useLiveQuery(() => (projectId ? db.projects.get(projectId) : undefined), [projectId])
   const sections = useLiveQuery(
     () => (projectId ? db.sections.where('projectId').equals(projectId).toArray() : []),
@@ -45,12 +47,22 @@ export function ProjectView() {
 
   if (!projectId) return null
 
-  if (project === undefined || allTasks === undefined) {
+  if (project === undefined || allTasks === undefined || devLoading) {
     return <div className="flex h-full items-center justify-center text-muted-foreground">Loading…</div>
   }
 
   if (!project) {
     return <div className="flex h-full items-center justify-center text-muted-foreground">Project not found</div>
+  }
+
+  if (needsBootstrap) {
+    return <div className="h-full" aria-hidden />
+  }
+
+  if (!activeDeveloper) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground">Loading…</div>
+    )
   }
 
   const showTalemailImport =

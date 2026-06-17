@@ -1,5 +1,5 @@
 import talemailMvpBundle from '../../imports/talemail-mvp-projocalypse-import.json'
-import { deleteProject } from '@/db/operations'
+import { deleteProject, deleteProjectSystem, findWorkspaceActor } from '@/db/operations'
 import { db } from '@/db/schema'
 import { importProjectsFromBundle, validateExportData } from '@/lib/export-import'
 import type { ExportData } from '@/models/types'
@@ -63,11 +63,18 @@ function isTalemailPlaceholderProject(name: string, id: string): boolean {
 
 /** Remove empty manually created Talemail projects so only the imported board remains. */
 async function removeEmptyTalemailDuplicates(): Promise<void> {
+  const actor = await findWorkspaceActor('manageProjects')
   const projects = await db.projects.toArray()
   for (const project of projects) {
     if (!isTalemailPlaceholderProject(project.name, project.id)) continue
     const taskCount = await db.tasks.where('projectId').equals(project.id).count()
-    if (taskCount === 0) await deleteProject(project.id)
+    if (taskCount === 0) {
+      if (actor) {
+        await deleteProject(actor, project.id)
+      } else {
+        await deleteProjectSystem(project.id)
+      }
+    }
   }
 }
 

@@ -1,0 +1,57 @@
+---
+description: Keep embedded Projocalypse board aligned with git plan markdown (pm:IDs, gap, sync)
+globs: "**/doc/PLAN/**/*.md,.projocalypse/**"
+alwaysApply: false
+---
+
+# Projocalypse plan ↔ board sync
+
+Read [doc/MONOREPO.md](../../doc/MONOREPO.md). Plan markdown is the **master** backlog; the embedded board is the sprint surface.
+
+## Plan item format
+
+```markdown
+- [ ] pm:PM-043 COPPA consent gate <!-- pm:section=Sprint pm:priority=high -->
+- [x] pm:PM-042 Magic link flow <!-- pm:section=Done -->
+```
+
+- Every trackable item needs a **stable `pm:PM-###` id** (unique across all plan files for the package).
+- Headings set default section; `<!-- pm:section=... -->` overrides.
+- Mark `[x]` when work is **done**; move section to `Done` (or package `doneSection` from `.projocalypse/workspace.json`).
+
+## After editing plan files
+
+From host repo root, for the affected `--package` (from `.projocalypse/workspace.json`):
+
+```bash
+pnpm pm:plan --package <name>
+pnpm pm:gap --package <name>
+pnpm pm:sync --package <name>
+```
+
+Commit `.projocalypse/pending/*.json` when pending upserts change so CI and embed import stay current.
+
+## When shipping a feature
+
+1. Complete the board task (or confirm it in gap output).
+2. Update plan: `[x]` + `pm:section=Done` for that `pm:ID`.
+3. Run gap again; fix `STATUS_MISMATCH` and `SECTION_DRIFT`.
+4. Export board snapshot if the host app writes `.projocalypse/board/` (needed for accurate gap).
+
+## Gap codes (fix before merge when blocking)
+
+| Code | Action |
+|------|--------|
+| `MISSING_ON_BOARD` | Run `pm:sync`; reload embed to import pending |
+| `STATUS_MISMATCH` | Align checkbox vs task `completed` (plan usually wins for Done) |
+| `SECTION_DRIFT` | Move task column or update `pm:section` metadata |
+| `MISSING_FROM_PLAN` | Remove orphan board task or restore plan line |
+| `NO_LINK` | Link host entity `projocalypseProjectId` in `.projocalypse/links/` |
+
+## Do not
+
+- Add duplicate `pm:PM-###` ids across files.
+- Use external PM tools for in-repo sprint items registered in `workspace.json`.
+- Full-DB Projocalypse import on a shared origin without user confirmation.
+
+Use skill **`projocalypse-plan-sync`** for full agent workflow. Initial embed setup: **`projocalypse-sprint-setup`**.

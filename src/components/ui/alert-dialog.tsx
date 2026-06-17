@@ -13,7 +13,7 @@ const AlertDialogOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-black/50', className)}
+    className={cn('fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px]', className)}
     {...props}
   />
 ))
@@ -28,7 +28,7 @@ const AlertDialogContent = forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border-2 border-primary bg-popover p-6 shadow-hud duration-200',
         className,
       )}
       {...props}
@@ -42,7 +42,7 @@ const AlertDialogHeader = ({ className, ...props }: HTMLAttributes<HTMLDivElemen
 )
 
 const AlertDialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)} {...props} />
+  <div className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props} />
 )
 
 const AlertDialogTitle = forwardRef<
@@ -51,7 +51,7 @@ const AlertDialogTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Title
     ref={ref}
-    className={cn('font-display text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn('font-display text-base font-bold uppercase tracking-widest text-primary', className)}
     {...props}
   />
 ))
@@ -63,7 +63,7 @@ const AlertDialogDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn('font-mono text-sm text-muted-foreground', className)}
     {...props}
   />
 ))
@@ -83,7 +83,7 @@ const AlertDialogCancel = forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(buttonVariants({ variant: 'outline' }), 'mt-2 sm:mt-0', className)}
+    className={cn(buttonVariants({ variant: 'outline' }), 'mt-0', className)}
     {...props}
   />
 ))
@@ -91,9 +91,9 @@ AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
 
 export {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogPortal,
   AlertDialogOverlay,
+  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogFooter,

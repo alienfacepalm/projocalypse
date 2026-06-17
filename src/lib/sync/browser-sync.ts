@@ -1,18 +1,20 @@
 import {
   decodeSyncSlice,
   encodeSyncSlice,
+  exportToSyncSlice,
   isSyncPayloadTooLargeForLocalStorage,
   mergeSyncSlices,
   mergeSyncWithBaseline,
-  SYNC_CLOUD_KEY,
-  SYNC_MIRROR_KEY,
   syncJsonByteLength,
   syncSliceToExportData,
   type SyncSources,
   validateSyncSlice,
 } from '@/lib/sync/payload'
+import { syncCloudKey, syncMirrorKey } from '@/lib/storage-namespace'
 import { removeGettingStartedProjects } from '@/db/operations'
 import { getAllTombstones } from '@/db/tombstones'
+import { suspendDevMirrorAutoBackup, resumeDevMirrorAutoBackup } from '@/lib/dev-mirror-guard'
+import { scheduleDevMirrorPush } from '@/lib/dev-mirror'
 import { importSyncData, exportData } from '@/lib/export-import'
 import { db } from '@/db/schema'
 import type { SyncSlice } from '@/models/types'
@@ -44,7 +46,7 @@ const FILE_POLL_MS = 5000
 
 function readMirrorSlice(): SyncSlice | undefined {
   try {
-    const raw = localStorage.getItem(SYNC_MIRROR_KEY)
+    const raw = localStorage.getItem(syncMirrorKey())
     if (!raw) return undefined
     return validateSyncSlice(JSON.parse(raw))
   } catch {
@@ -54,7 +56,7 @@ function readMirrorSlice(): SyncSlice | undefined {
 
 function readCloudSliceFromLocalStorage(): SyncSlice | undefined {
   try {
-    const raw = localStorage.getItem(SYNC_CLOUD_KEY)
+    const raw = localStorage.getItem(syncCloudKey())
     if (!raw) return undefined
     return validateSyncSlice(JSON.parse(raw))
   } catch {
@@ -65,7 +67,7 @@ function readCloudSliceFromLocalStorage(): SyncSlice | undefined {
 function writeMirrorSlice(slice: SyncSlice): boolean {
   if (isSyncPayloadTooLargeForLocalStorage(slice)) return false
   try {
-    localStorage.setItem(SYNC_MIRROR_KEY, encodeSyncSlice(slice))
+    localStorage.setItem(syncMirrorKey(), encodeSyncSlice(slice))
     return true
   } catch {
     return false
@@ -75,7 +77,7 @@ function writeMirrorSlice(slice: SyncSlice): boolean {
 function writeCloudSliceToLocalStorage(slice: SyncSlice): boolean {
   if (isSyncPayloadTooLargeForLocalStorage(slice)) return false
   try {
-    localStorage.setItem(SYNC_CLOUD_KEY, encodeSyncSlice(slice))
+    localStorage.setItem(syncCloudKey(), encodeSyncSlice(slice))
     return true
   } catch {
     return false
@@ -133,15 +135,7 @@ async function loadSources(): Promise<SyncSources> {
 export async function buildSyncSliceFromDb(): Promise<SyncSlice> {
   const data = await exportData()
   const tombstones = await getAllTombstones()
-  return {
-    version: 2,
-    syncedAt: data.exportedAt,
-    projects: data.projects,
-    sections: data.sections,
-    tasks: data.tasks,
-    subtasks: data.subtasks,
-    tombstones,
-  }
+  return exportToSyncSlice(data, tombstones)
 }
 
 export async function applySyncSliceToDb(slice: SyncSlice): Promise<void> {
@@ -177,19 +171,22 @@ async function pullRemoteSyncOnce(baseline?: SyncSlice): Promise<boolean> {
   if (!baseline && fingerprint === lastAppliedFingerprint) return false
 
   applyingRemote = true
+  suspendDevMirrorAutoBackup()
   try {
     await applySyncSliceToDb(merged)
     await removeGettingStartedProjects()
     lastAppliedFingerprint = fingerprint
     notifyStatus({
       mirrorAvailable: Boolean(readMirrorSlice()),
-      cloudAvailable: Boolean(localStorage.getItem(SYNC_CLOUD_KEY)) || Boolean(syncFileHandle),
+      cloudAvailable: Boolean(localStorage.getItem(syncCloudKey())) || Boolean(syncFileHandle),
       lastSyncedAt: merged.syncedAt,
       lastError: null,
     })
     return true
   } finally {
     applyingRemote = false
+    resumeDevMirrorAutoBackup()
+    scheduleDevMirrorPush()
   }
 }
 
@@ -197,7 +194,6 @@ export async function pushLocalSync(): Promise<void> {
   if (applyingRemote) return
 
   const slice = await buildSyncSliceFromDb()
-  lastAppliedFingerprint = fingerprintSyncSlice(slice)
   const mirrorWritten = writeMirrorSlice(slice)
   const cloudStorageWritten = writeCloudSliceToLocalStorage(slice)
 
@@ -256,8 +252,15 @@ export async function flushLocalSyncAfterMutation(): Promise<void> {
   await pushLocalSync()
 }
 
+/** Pull remote changes, then push local state (bidirectional sync). */
+export async function syncNow(): Promise<void> {
+  lastAppliedFingerprint = ''
+  await pullRemoteSync()
+  await pushLocalSync()
+}
+
 function isSyncStorageEvent(event: StorageEvent): boolean {
-  return event.key === SYNC_MIRROR_KEY || event.key === SYNC_CLOUD_KEY
+  return event.key === syncMirrorKey() || event.key === syncCloudKey()
 }
 
 export function startSyncListeners(onRemoteChange?: () => void): () => void {
@@ -289,8 +292,8 @@ export function startSyncListeners(onRemoteChange?: () => void): () => void {
 export async function initBrowserSync(): Promise<void> {
   await restoreLinkedSyncFile()
   notifyStatus({
-    mirrorAvailable: Boolean(localStorage.getItem(SYNC_MIRROR_KEY)),
-    cloudAvailable: Boolean(localStorage.getItem(SYNC_CLOUD_KEY)) || Boolean(syncFileHandle),
+    mirrorAvailable: Boolean(localStorage.getItem(syncMirrorKey())),
+    cloudAvailable: Boolean(localStorage.getItem(syncCloudKey())) || Boolean(syncFileHandle),
     fileLinked: Boolean(syncFileHandle),
   })
   await pullRemoteSync()
@@ -322,7 +325,8 @@ export async function linkSyncFile(): Promise<void> {
 
   const existing = await readCloudSliceFromFile()
   if (existing) {
-    await pullRemoteSync(await buildSyncSliceFromDb())
+    lastAppliedFingerprint = ''
+    await pullRemoteSync()
   } else {
     await pushLocalSync()
   }

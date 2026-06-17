@@ -27,6 +27,7 @@ export interface MyTasksFilters {
   smartList: SmartList
   projectId: string | null
   priority: Priority | 'any'
+  assigneeId: string | null | 'unassigned'
 }
 
 export function sortMyTasks(a: Task, b: Task): number {
@@ -48,6 +49,11 @@ export function filterMyTasks(
   }
   if (filters.priority !== 'any') {
     result = result.filter((task) => task.priority === filters.priority)
+  }
+  if (filters.assigneeId === 'unassigned') {
+    result = result.filter((task) => task.assigneeId === null)
+  } else if (filters.assigneeId) {
+    result = result.filter((task) => task.assigneeId === filters.assigneeId)
   }
 
   switch (filters.smartList) {

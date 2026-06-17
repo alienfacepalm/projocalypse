@@ -18,7 +18,12 @@ import { reorderSections, reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
 import { applyProjectTaskView, type ProjectTaskViewOptions } from '@/lib/project-task-view'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
-import { computeSectionReorderUpdates, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
+import {
+  computeSectionReorderUpdates,
+  sectionIdFromReorderOverId,
+  sectionIdFromSortableId,
+  sortableSectionId,
+} from '@/lib/section-drag'
 import { AddSectionButton, BoardSectionHeader } from './section-header'
 import { TaskRow } from './task-row'
 import { QuickAddTask } from '@/components/task/quick-add-task'
@@ -30,7 +35,7 @@ interface BoardViewProps {
   sectionNameById: Map<string, string>
 }
 
-function BoardColumnBody({
+function BoardColumn({
   section,
   tasks,
   projectId,
@@ -40,42 +45,10 @@ function BoardColumnBody({
   projectId: string
 }) {
   const taskIds = tasks.map((t) => t.id)
-  const { setNodeRef, isOver } = useDroppable({ id: columnDroppableId(section.id) })
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        'flex min-h-[120px] flex-1 flex-col overflow-y-auto p-2 transition-colors',
-        isOver && 'bg-primary/5 ring-2 ring-inset ring-primary/25',
-      )}
-    >
-      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
-          {tasks.map((task) => (
-            <div key={task.id} className="overflow-hidden rounded-lg border border-border/70 bg-background shadow-sm">
-              <TaskRow task={task} sectionName={section.name} compact />
-            </div>
-          ))}
-        </div>
-      </SortableContext>
-      <QuickAddTask projectId={projectId} sectionId={section.id} placeholder="Add task…" />
-    </div>
-  )
-}
-
-function SortableBoardColumn({
-  section,
-  tasks,
-  projectId,
-}: {
-  section: Section
-  tasks: Task[]
-  projectId: string
-}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sortableSectionId(section.id),
   })
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: columnDroppableId(section.id) })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -87,21 +60,41 @@ function SortableBoardColumn({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-sm"
+      className="flex w-80 shrink-0 flex-col border border-border bg-card/60 shadow-hud-sm backdrop-blur-sm"
     >
       <BoardSectionHeader
         section={section}
         taskCount={tasks.length}
         sortable
-        dragHandleProps={{ ...attributes, ...listeners }}
+        dragHandleProps={{ attributes, listeners }}
       />
-      <BoardColumnBody section={section} tasks={tasks} projectId={projectId} />
+      <div
+        ref={setDropRef}
+        className={cn(
+          'flex min-h-[160px] flex-1 flex-col overflow-y-auto p-2 transition-colors',
+          isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
+        )}
+      >
+        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <div key={task.id} className="border border-border bg-background shadow-hud-sm">
+                <TaskRow task={task} compact sectionName={section.name} />
+              </div>
+            ))}
+          </div>
+        </SortableContext>
+        <QuickAddTask projectId={projectId} sectionId={section.id} placeholder="Add task…" />
+      </div>
     </div>
   )
 }
 
 export function BoardView({ projectId, taskViewOptions, sectionNameById }: BoardViewProps) {
-  const sections = useLiveQuery(() => db.sections.where('projectId').equals(projectId).sortBy('sortOrder'), [projectId])
+  const sections = useLiveQuery(
+    () => db.sections.where('projectId').equals(projectId).sortBy('sortOrder'),
+    [projectId],
+  )
   const allTasks = useLiveQuery(() => db.tasks.where('projectId').equals(projectId).toArray(), [projectId])
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeSection, setActiveSection] = useState<Section | null>(null)
@@ -117,6 +110,9 @@ export function BoardView({ projectId, taskViewOptions, sectionNameById }: Board
       const list = map.get(task.sectionId) ?? []
       list.push(task)
       map.set(task.sectionId, list)
+    }
+    for (const [, sectionTasks] of map) {
+      sectionTasks.sort((a, b) => a.sortOrder - b.sortOrder)
     }
     return map
   }, [visibleTasks])
@@ -145,11 +141,12 @@ export function BoardView({ projectId, taskViewOptions, sectionNameById }: Board
     const overId = String(over.id)
 
     if (activeId.startsWith('section:')) {
-      if (!overId.startsWith('section:')) return
+      const overSectionId = sectionIdFromReorderOverId(overId)
+      if (!overSectionId) return
       const updates = computeSectionReorderUpdates(
         sections,
         sectionIdFromSortableId(activeId),
-        sectionIdFromSortableId(overId),
+        overSectionId,
       )
       if (updates) await reorderSections(updates)
       return
@@ -164,12 +161,17 @@ export function BoardView({ projectId, taskViewOptions, sectionNameById }: Board
   const activeSectionName = activeTask ? sectionNameById.get(activeTask.sectionId) : undefined
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="flex h-full flex-col">
-        <div className={cn('flex flex-1 gap-4 overflow-x-auto p-4')}>
+        <div className="hud-scrollbar flex flex-1 gap-4 overflow-x-auto p-4">
           <SortableContext items={sectionSortableIds} strategy={horizontalListSortingStrategy}>
             {sections?.map((section) => (
-              <SortableBoardColumn
+              <BoardColumn
                 key={section.id}
                 section={section}
                 tasks={tasksBySection.get(section.id) ?? []}
@@ -177,23 +179,25 @@ export function BoardView({ projectId, taskViewOptions, sectionNameById }: Board
               />
             ))}
           </SortableContext>
-          <div className="flex w-72 shrink-0 items-start pt-2">
+          <div className="flex w-80 shrink-0 items-start pt-2">
             <AddSectionButton projectId={projectId} />
           </div>
         </div>
       </div>
       <DragOverlay>
         {activeTask ? (
-          <div className="w-72 overflow-hidden rounded-lg border border-border bg-background shadow-lg">
-            <TaskRow task={activeTask} sectionName={activeSectionName} draggable={false} compact />
+          <div className="w-80 border-2 border-primary bg-background shadow-hud">
+            <TaskRow task={activeTask} sectionName={activeSectionName} draggable={false} compact showTooltip={false} />
           </div>
         ) : null}
         {activeSection ? (
-          <div className="w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-            <div className="border-b border-border/50 bg-gradient-to-b from-muted/30 via-muted/10 to-transparent px-10 py-3.5 text-center">
-              <p className="font-display text-[0.9375rem] font-semibold leading-snug tracking-tight">
-                {activeSection.name}
-              </p>
+          <div className="flex w-80 flex-col border-2 border-primary bg-card/90 shadow-hud backdrop-blur-sm">
+            <div className="border-b-2 border-primary/40 px-3 py-2.5 font-display text-xs font-bold uppercase tracking-widest text-primary">
+              {activeSection.name}
+            </div>
+            <div className="min-h-[80px] p-2 text-xs text-muted-foreground">
+              {(tasksBySection.get(activeSection.id) ?? []).length} task
+              {(tasksBySection.get(activeSection.id) ?? []).length !== 1 ? 's' : ''}
             </div>
           </div>
         ) : null}

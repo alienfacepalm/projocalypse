@@ -15,7 +15,11 @@ Adapted from the [talemail](https://github.com/alienfacepalm/talemail) Cursor co
 | `projocalypse-real-implementation.mdc` | — | **yes** |
 | `projocalypse-docs-sync.mdc` | — | **yes** |
 | `projocalypse-tests.mdc` | — | **yes** |
+| `projocalypse-karpathy-guidelines.mdc` | — | **yes** |
+| `projocalypse-dev-server.mdc` | — | **yes** |
+| `projocalypse-file-size.mdc` | `src/**/*.{ts,tsx}` | no |
 | `projocalypse-docs.mdc` | `doc/**`, `README.md`, `.cursor/README.md` | no |
+| `projocalypse-plan-sync.mdc` | `**/doc/PLAN/**/*.md`, `.projocalypse/**` | no |
 | `projocalypse-typescript.mdc` | `**/*.{ts,tsx}` | no |
 | `projocalypse-filenames.mdc` | `src/**` | no |
 | `projocalypse-pnpm.mdc` | `package.json`, `pnpm-lock.yaml`, `**/*.{ts,tsx,css}` | no |
@@ -29,18 +33,26 @@ Adapted from the [talemail](https://github.com/alienfacepalm/talemail) Cursor co
 
 | Skill | Use when | Don't use when |
 |-------|----------|----------------|
-| `projocalypse-karpathy-guidelines` | Writing, reviewing, or refactoring **code**; surgical diffs, simplicity, verifiable success criteria | Overriding allow-all with permission prompts |
+| `projocalypse-karpathy-guidelines` | Extra detail on the always-on **`projocalypse-karpathy-guidelines.mdc`** rule; use when you want the full skill narrative | Overriding allow-all with permission prompts |
 | `projocalypse-full-review` | End-to-end review on a feature branch: gap analysis, tests, fixes, ship PR | Babysitting existing PR CI only (use `babysit`) |
 | `projocalypse-frontend-design` | Building or styling web UI — components, pages, dashboards, polish | Routine bug fixes unrelated to design |
+| `projocalypse-plan-sync` | Plan markdown ↔ embedded board: `pm:gap`, `pm:sync`, checkbox updates, drift | One-time embed setup (use `projocalypse-sprint-setup`) |
+| `projocalypse-sprint-setup` | First-time submodule embed, pm scripts, registry | Ongoing plan drift (use `projocalypse-plan-sync`) |
+| `projocalypse-pr-loop` | End-to-end ship on a feature branch | Full review or plan sync |
+| `projocalypse-dev-server` | Start/reuse/tear down Vite on port 5173; subagents report port conflicts | Routine `pnpm test` (no dev server) |
+
+Host monorepos: `pnpm pm:init` copies `templates/cursor/` to `.cursor/projocalypse-host/` — merge rules/skills per [templates/cursor/README.md](../templates/cursor/README.md).
 
 Imported from talemail: **Karpathy** for coding craft; **Anthropic frontend-design** for distinctive UI work; **full-review** workflow adapted as `projocalypse-full-review`.
 
 ## Quick start for agents
 
-1. Read [README.md](../README.md) for stack and features.
+1. Read [README.md](../README.md) for stack and features; embedded PM sync strategy in [doc/EMBED-STRATEGY.md](../doc/EMBED-STRATEGY.md).
 2. `projocalypse-agent-behavior` + `projocalypse-git` are always on.
 3. `projocalypse-stack` + `projocalypse-typescript` + `projocalypse-filenames` + `projocalypse-pnpm` + `projocalypse-tailwind-shadcn` when editing `src/**` or `package.json`.
-4. `projocalypse-karpathy-guidelines` for code changes; `projocalypse-frontend-design` for UI polish or new screens.
+4. `projocalypse-dev-server` when starting browser QA, `pnpm dev`, or local port conflicts; rule **`projocalypse-dev-server.mdc`** is always on.
+5. **`projocalypse-karpathy-guidelines.mdc`** is always on; skill `projocalypse-karpathy-guidelines` for the expanded narrative. **`projocalypse-file-size.mdc`** when editing `src/**` — split files over 400 lines.
+6. `projocalypse-frontend-design` for UI polish or new screens.
 
 ## Not copied from talemail
 

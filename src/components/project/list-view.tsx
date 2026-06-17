@@ -17,7 +17,7 @@ import { reorderSections, reorderTasks } from '@/db/operations'
 import type { Section, Task } from '@/models/types'
 import { applyProjectTaskView, type ProjectTaskViewOptions } from '@/lib/project-task-view'
 import { columnDroppableId, computeTaskReorderUpdates } from '@/lib/task-drag'
-import { computeSectionReorderUpdates, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
+import { computeSectionReorderUpdates, sectionIdFromReorderOverId, sectionIdFromSortableId, sortableSectionId } from '@/lib/section-drag'
 import { AddSectionButton, SectionBlock } from './section-header'
 import { TaskRow } from './task-row'
 import { QuickAddTask } from '@/components/task/quick-add-task'
@@ -45,7 +45,7 @@ function SectionDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={cn('transition-colors', isOver && 'rounded-md bg-primary/5 ring-2 ring-inset ring-primary/20')}
+      className={cn('transition-colors', isOver && 'bg-primary/10 ring-2 ring-inset ring-primary/30')}
     >
       {children}
     </div>
@@ -102,10 +102,12 @@ export function ListView({ projectId, taskViewOptions, sectionNameById }: ListVi
     const overId = String(over.id)
 
     if (activeId.startsWith('section:')) {
+      const overSectionId = sectionIdFromReorderOverId(overId)
+      if (!overSectionId) return
       const updates = computeSectionReorderUpdates(
         sections,
         sectionIdFromSortableId(activeId),
-        sectionIdFromSortableId(overId),
+        overSectionId,
       )
       if (updates) await reorderSections(updates)
       return
@@ -120,9 +122,9 @@ export function ListView({ projectId, taskViewOptions, sectionNameById }: ListVi
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="overflow-y-auto pb-8">
+      <div className="hud-scrollbar overflow-y-auto pb-8">
         {firstSectionId && (
-          <div className="border-b border-border/60 bg-muted/30 px-1 py-2">
+          <div className="border-b-2 border-primary/40 bg-muted/30 px-1 py-2">
             <QuickAddTask projectId={projectId} sectionId={firstSectionId} placeholder="Add task to first section…" />
           </div>
         )}
@@ -133,6 +135,7 @@ export function ListView({ projectId, taskViewOptions, sectionNameById }: ListVi
                 section={section}
                 tasks={tasksBySection.get(section.id) ?? []}
                 projectId={projectId}
+                showCompleted={taskViewOptions.showCompleted}
                 collapsed={!!collapsedSections[section.id]}
                 onToggle={() => toggleSection(section.id)}
                 sortable
@@ -148,10 +151,11 @@ export function ListView({ projectId, taskViewOptions, sectionNameById }: ListVi
             task={activeTask}
             sectionName={sectionNameById.get(activeTask.sectionId)}
             draggable={false}
+            showTooltip={false}
           />
         ) : null}
         {activeSection ? (
-          <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-semibold shadow-md">
+          <div className="border-2 border-primary bg-muted/40 px-3 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary shadow-hud-sm">
             {activeSection.name}
           </div>
         ) : null}

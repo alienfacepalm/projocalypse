@@ -1,0 +1,26 @@
+---
+description: Embed constraints when Projocalypse mounts inside host apps (e.g. Talemail)
+globs: src/App.tsx,src/context/embed-context.tsx,src/lib/embed.ts,src/context/active-developer-context.tsx,src/db/operations.ts,src/models/types.ts,doc/EMBED.md
+alwaysApply: false
+---
+
+# Projocalypse embed model
+
+Projocalypse ships standalone and **embedded** in host apps. Read [doc/EMBED.md](../../doc/EMBED.md) before features that touch developers, export, navigation, or bootstrap.
+
+## Non-negotiable
+
+1. **Project scope** — developers, bootstrap, assignment, and project export use `projectId` / `hostProjectId`. No global-only developer rosters.
+2. **Embed config** — `EmbedProvider` + `App({ embed })`; use `useEmbed()` for branding and chrome flags.
+3. **Active developer** — per-project `localStorage` keys via `activeDeveloperStorageKey(projectId)`.
+4. **Host backup** — embedded hosts use `exportProjectData(hostProjectId)`, not full-DB export, unless intentionally replacing the whole origin DB.
+
+## When adding features
+
+- Ask: does this work when `hideSidebar` is true and `hostProjectId` is fixed?
+- Ask: does data belong to a project or the whole origin?
+- Update `doc/EMBED.md` when embed contract or scoping rules change.
+
+## Talemail
+
+No Talemail-specific code in this repo yet. Integration lives in the Talemail monorepo — see **Talemail gaps** in `doc/EMBED.md`.
