@@ -1,2 +1,7 @@
-# All changes require approval from the repo owner before merge to master.
-* @alienfacepalm
+# All changes require approval from a repository owner before merge to master.
+# Owner GitHub accounts: @alienfacepalm, @jagon
+# (brandon@alienfacepalm.com, jagon@alienfacepalm.com, brandon.pliska@gmail.com)
+#
+# Solo-owner PRs: .github/workflows/owner-auto-approve.yml approves after CI
+# passes (GitHub blocks self-approval). Owners are also on the bypass allowlist.
+* @alienfacepalm @jagon
