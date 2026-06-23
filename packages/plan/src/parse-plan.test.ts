@@ -46,4 +46,22 @@ describe('parsePlanMarkdown', () => {
     const items = parsePlanMarkdown('- [ ] Regular checkbox\n', 'plan.md')
     expect(items).toHaveLength(0)
   })
+
+  it('extracts pm:description metadata and indented body lines', () => {
+    const md = `# Backlog
+
+- [ ] pm:PM-010 Meta description <!-- pm:description=Ship when VPC is live pm:priority=high -->
+- [ ] pm:PM-011 Indented body
+  First detail line.
+  Second detail line.
+- [ ] pm:PM-012 Blockquote body
+  > Quote detail line.
+`
+    const items = parsePlanMarkdown(md, 'plan.md')
+    expect(items.find((item) => item.id === 'PM-010')?.description).toBe('Ship when VPC is live')
+    expect(items.find((item) => item.id === 'PM-011')?.description).toBe(
+      'First detail line.\nSecond detail line.',
+    )
+    expect(items.find((item) => item.id === 'PM-012')?.description).toBe('Quote detail line.')
+  })
 })
