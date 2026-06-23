@@ -94,9 +94,15 @@ async function upsertPendingTask(
   const now = Date.now()
 
   if (existing) {
+    const description =
+      upsert.description !== undefined
+        ? upsert.description
+        : existing.description.startsWith('Synced from ')
+          ? ''
+          : existing.description
     await updateTask(existing.id, {
       title: upsert.title,
-      description: upsert.description ?? existing.description,
+      description,
       priority: upsert.priority as Priority,
       sectionId: section.id,
       completed: upsert.completed,

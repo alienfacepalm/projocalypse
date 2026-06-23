@@ -207,13 +207,14 @@ export function buildPendingFromPlan(
     let sectionName = item.section ?? defaultSection
     if (item.done && !item.section) sectionName = doneSection
 
+    const description = item.description?.trim() ?? ''
     upserts.push({
       planItemId: item.id,
       title: item.title,
       completed: item.done,
       sectionName,
       priority: item.priority,
-      description: `Synced from ${item.source.file}:${item.source.line}`,
+      description,
     })
   }
 
